@@ -557,6 +557,7 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
+    int moveBonusRemaining = 1;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -1274,7 +1275,61 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
-      if (value > bestValue)
+      // Add a bonus if there is more than one desirable move
+
+      Value originalBestValue = bestValue;
+      if ( depth < 5 )
+      {
+          int valueBonus = 1;
+          int bestValueBonus = 1;
+          int radius = 5;
+
+          if (value > 160)
+          {
+              valueBonus = 2;
+              radius = 10;
+          }
+          if (bestValue > 160)
+          {
+              bestValueBonus = 2;
+          }
+
+          if (value > 320)
+          {
+              valueBonus = 4;
+              radius = 20;
+          }
+          if (bestValue > 160)
+          {
+              bestValueBonus = 4;
+          }
+
+          if (moveBonusRemaining == 1)
+          {
+              originalBestValue = bestValue - bestValueBonus;
+          }
+
+          if (originalBestValue > 80 && value > 80 && originalBestValue < 1000)
+          {
+              if (value > originalBestValue + radius)
+              {
+                  moveBonusRemaining = 1;
+              }else if (value > originalBestValue)
+              {
+                  value = value + valueBonus;
+                  moveBonusRemaining = 0;
+              }else if (value > originalBestValue - radius)
+              {
+                  if (moveBonusRemaining > 0){
+                    bestValue = bestValue + bestValueBonus;
+                    moveBonusRemaining = 0;
+                  }
+              }
+          }
+      }
+
+
+      if (value > originalBestValue)
       {
           bestValue = value;
 
