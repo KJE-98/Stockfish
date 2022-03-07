@@ -40,6 +40,14 @@ namespace Stockfish {
 namespace Search {
 
   LimitsType Limits;
+  int depthForBonus = 7;
+  int smallBonus = 5;
+  int smallRadius = 10;
+  int mediumBonus = 10;
+  int mediumRadius = 20;
+  int largeBonus = 15;
+  int largeRadius = 30;
+  TUNE(depthForBonus, smallBonus, mediumBonus, largeBonus, smallRadius, mediumRadius, largeRadius);
 }
 
 namespace Tablebases {
@@ -1278,31 +1286,32 @@ moves_loop: // When in check, search starts here
       // Add a bonus if there is more than one desirable move
 
       Value originalBestValue = bestValue;
-      if ( depth < 5 )
+      if ( depth < depthForBonus )
       {
-          int valueBonus = 2;
-          int bestValueBonus = 2;
-          int radius = 6;
+          int valueBonus = smallBonus;
+          int bestValueBonus = smallBonus;
+          int radius = smallRadius;
 
           if (value > 160)
           {
-              valueBonus = 4;
-              radius = 12;
+              valueBonus = mediumBonus;
+              radius = mediumRadius;
           }
           if (bestValue > 160)
           {
-              bestValueBonus = 4;
+              bestValueBonus = mediumBonus;
           }
 
           if (value > 320)
           {
-              valueBonus = 6;
-              radius = 20;
+              valueBonus = largeBonus;
+              radius = largeRadius;
           }
           if (bestValue > 320)
           {
-              bestValueBonus = 6;
+              bestValueBonus = largeBonus;
           }
+
 
           if (moveBonusRemaining == 0)
           {
