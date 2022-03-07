@@ -1280,31 +1280,31 @@ moves_loop: // When in check, search starts here
       Value originalBestValue = bestValue;
       if ( depth < 5 )
       {
-          int valueBonus = 1;
-          int bestValueBonus = 1;
-          int radius = 5;
+          int valueBonus = 2;
+          int bestValueBonus = 2;
+          int radius = 6;
 
           if (value > 160)
           {
-              valueBonus = 2;
-              radius = 10;
-          }
-          if (bestValue > 160)
-          {
-              bestValueBonus = 2;
-          }
-
-          if (value > 320)
-          {
               valueBonus = 4;
-              radius = 20;
+              radius = 12;
           }
           if (bestValue > 160)
           {
               bestValueBonus = 4;
           }
 
-          if (moveBonusRemaining == 1)
+          if (value > 320)
+          {
+              valueBonus = 6;
+              radius = 20;
+          }
+          if (bestValue > 320)
+          {
+              bestValueBonus = 6;
+          }
+
+          if (moveBonusRemaining == 0)
           {
               originalBestValue = bestValue - bestValueBonus;
           }
