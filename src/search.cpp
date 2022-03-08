@@ -1283,30 +1283,30 @@ moves_loop: // When in check, search starts here
       // Add a bonus if there is more than one desirable move
 
       Value originalBestValue = bestValue;
-      if ( depth < 5 )
+      if ( depth < 6 )
       {
-          int valueBonus = 2;
-          int bestValueBonus = 2;
-          int radius = 6;
+          int valueBonus = 5;
+          int bestValueBonus = 5;
+          int radius = 10;
 
           if (value > 160)
           {
-              valueBonus = 4;
-              radius = 12;
+              valueBonus = 10;
+              radius = 20;
           }
           if (bestValue > 160)
           {
-              bestValueBonus = 4;
+              bestValueBonus = 10;
           }
 
           if (value > 320)
           {
-              valueBonus = 6;
-              radius = 20;
+              valueBonus = 13;
+              radius = 30;
           }
           if (bestValue > 320)
           {
-              bestValueBonus = 6;
+              bestValueBonus = 13;
           }
 
           if (moveBonusRemaining == 0)
