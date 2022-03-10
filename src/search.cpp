@@ -557,7 +557,7 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
-    int moveBonusRemaining = 1;
+    int moveBonusRemaining = 3;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -1283,51 +1283,51 @@ moves_loop: // When in check, search starts here
       // Add a bonus if there is more than one desirable move
 
       Value originalBestValue = bestValue;
-      if ( depth < 6 )
+      if ( depth < 8 && depth > 2 )
       {
-          int valueBonus = 5;
-          int bestValueBonus = 5;
+          int valueBonus = 3;
+          int bestValueBonus = 3;
           int radius = 10;
 
           if (value > 160)
           {
-              valueBonus = 10;
+              valueBonus = 6;
               radius = 20;
           }
           if (bestValue > 160)
           {
-              bestValueBonus = 10;
+              bestValueBonus = 6;
           }
 
           if (value > 320)
           {
-              valueBonus = 13;
+              valueBonus = 12;
               radius = 30;
           }
           if (bestValue > 320)
           {
-              bestValueBonus = 13;
+              bestValueBonus = 12;
           }
 
-          if (moveBonusRemaining == 0)
+          if (moveBonusRemaining < 3)
           {
-              originalBestValue = bestValue - bestValueBonus;
+              originalBestValue = bestValue - (3-moveBonusRemaining) * bestValueBonus;
           }
 
           if (originalBestValue > 80 && value > 80 && originalBestValue < 1000)
           {
               if (value > originalBestValue + radius)
               {
-                  moveBonusRemaining = 1;
+                  moveBonusRemaining = 3;
               }else if (value > originalBestValue)
               {
                   value = value + valueBonus;
-                  moveBonusRemaining = 0;
+                  moveBonusRemaining = 2;
               }else if (value > originalBestValue - radius)
               {
                   if (moveBonusRemaining > 0){
                     bestValue = bestValue + bestValueBonus;
-                    moveBonusRemaining = 0;
+                    moveBonusRemaining--;
                   }
               }
           }
