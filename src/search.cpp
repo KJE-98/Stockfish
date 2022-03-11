@@ -557,7 +557,6 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
-    int moveBonusRemaining = 3;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -1280,61 +1279,8 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
-      // Add a bonus if there is more than one desirable move
 
-      Value originalBestValue = bestValue;
-      if ( depth < 8 && depth > 2 )
-      {
-          int valueBonus = 3;
-          int bestValueBonus = 3;
-          int radius = 10;
-
-          if (value > 160)
-          {
-              valueBonus = 6;
-              radius = 20;
-          }
-          if (bestValue > 160)
-          {
-              bestValueBonus = 6;
-          }
-
-          if (value > 320)
-          {
-              valueBonus = 12;
-              radius = 30;
-          }
-          if (bestValue > 320)
-          {
-              bestValueBonus = 12;
-          }
-
-          if (moveBonusRemaining < 3)
-          {
-              originalBestValue = bestValue - (3-moveBonusRemaining) * bestValueBonus;
-          }
-
-          if (originalBestValue > 80 && value > 80 && originalBestValue < 1000)
-          {
-              if (value > originalBestValue + radius)
-              {
-                  moveBonusRemaining = 3;
-              }else if (value > originalBestValue)
-              {
-                  value = value + valueBonus;
-                  moveBonusRemaining = 2;
-              }else if (value > originalBestValue - radius)
-              {
-                  if (moveBonusRemaining > 0){
-                    bestValue = bestValue + bestValueBonus;
-                    moveBonusRemaining--;
-                  }
-              }
-          }
-      }
-
-
-      if (value > originalBestValue)
+      if (value > bestValue)
       {
           bestValue = value;
 
@@ -1455,6 +1401,7 @@ moves_loop: // When in check, search starts here
     Value bestValue, value, ttValue, futilityValue, futilityBase;
     bool pvHit, givesCheck, captureOrPromotion;
     int moveCount;
+    int moveBonusRemaining = 2;
 
     if (PvNode)
     {
@@ -1629,8 +1576,61 @@ moves_loop: // When in check, search starts here
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
 
+      // Add a bonus if there is more than one desirable move
+
+      Value originalBestValue = bestValue;
+      if ( depth < -5 )
+      {
+          int valueBonus = 5;
+          int bestValueBonus = 5;
+          int radius = 10;
+
+          if (value > 160)
+          {
+              valueBonus = 9;
+              radius = 20;
+          }
+          if (bestValue > 160)
+          {
+              bestValueBonus = 9;
+          }
+
+          if (value > 320)
+          {
+              valueBonus = 13;
+              radius = 25;
+          }
+          if (bestValue > 320)
+          {
+              bestValueBonus = 13;
+          }
+
+          if (moveBonusRemaining < 2)
+          {
+              originalBestValue = bestValue - (2-moveBonusRemaining) * bestValueBonus;
+          }
+
+          if (originalBestValue > 80 && value > 80 && originalBestValue < 2000)
+          {
+              if (value > originalBestValue + radius)
+              {
+                  moveBonusRemaining = 2;
+              }else if (value > originalBestValue)
+              {
+                  value = value + valueBonus;
+                  moveBonusRemaining = 1;
+              }else if (value > originalBestValue - radius)
+              {
+                  if (moveBonusRemaining > 0){
+                    bestValue = bestValue + bestValueBonus;
+                    moveBonusRemaining--;
+                  }
+              }
+          }
+      }
+
       // Check for a new best move
-      if (value > bestValue)
+      if (value > originalBestValue)
       {
           bestValue = value;
 
