@@ -40,6 +40,19 @@ namespace Stockfish {
 namespace Search {
 
   LimitsType Limits;
+  int numberOfBonus = 5;
+  int moveBonusDepth = 5;
+  int smallBonus = 5;
+  int smallRadius = 5;
+  int mediumBonus = 10;
+  int mediumRadius = 10;
+  int largeBonus = 20;
+  int largeRadius = 20;
+  int smallAdvantage = 80;
+  int mediumAdvantage = 160;
+  int largeAdvantage = 320;
+
+  TUNE (numberOfBonus, moveBonusDepth, smallBonus, smallRadius, mediumBonus, mediumRadius, largeBonus, largeRadius, smallAdvantage, mediumAdvantage, largeAdvantage);
 }
 
 namespace Tablebases {
@@ -1401,7 +1414,7 @@ moves_loop: // When in check, search starts here
     Value bestValue, value, ttValue, futilityValue, futilityBase;
     bool pvHit, givesCheck, captureOrPromotion;
     int moveCount;
-    int moveBonusRemaining = 2;
+    int moveBonusRemaining = numberOfBonus;
 
     if (PvNode)
     {
@@ -1579,46 +1592,46 @@ moves_loop: // When in check, search starts here
       // Add a bonus if there is more than one desirable move
 
       Value originalBestValue = bestValue;
-      if ( depth < -5 )
+      if ( depth < -moveBonusDepth )
       {
-          int valueBonus = 5;
-          int bestValueBonus = 5;
-          int radius = 10;
+          int valueBonus = smallBonus;
+          int bestValueBonus = smallBonus;
+          int radius = smallRadius;
 
-          if (value > 160)
+          if (value > mediumAdvantage)
           {
-              valueBonus = 9;
-              radius = 20;
+              valueBonus = mediumBonus;
+              radius = mediumRadius;
           }
-          if (bestValue > 160)
+          if (bestValue > mediumAdvantage)
           {
-              bestValueBonus = 9;
-          }
-
-          if (value > 320)
-          {
-              valueBonus = 13;
-              radius = 25;
-          }
-          if (bestValue > 320)
-          {
-              bestValueBonus = 13;
+              bestValueBonus = mediumBonus;
           }
 
-          if (moveBonusRemaining < 2)
+          if (value > largeAdvantage)
           {
-              originalBestValue = bestValue - (2-moveBonusRemaining) * bestValueBonus;
+              valueBonus = largeBonus;
+              radius = largeRadius;
+          }
+          if (bestValue > largeAdvantage)
+          {
+              bestValueBonus = largeBonus;
           }
 
-          if (originalBestValue > 80 && value > 80 && originalBestValue < 2000)
+          if (moveBonusRemaining < numberOfBonus)
+          {
+              originalBestValue = bestValue - (numberOfBonus-moveBonusRemaining) * bestValueBonus;
+          }
+
+          if (originalBestValue > smallAdvantage && value > smallAdvantage && originalBestValue < 2000)
           {
               if (value > originalBestValue + radius)
               {
-                  moveBonusRemaining = 2;
+                  moveBonusRemaining = numberOfBonus;
               }else if (value > originalBestValue)
               {
                   value = value + valueBonus;
-                  moveBonusRemaining = 1;
+                  moveBonusRemaining = numberOfBonus - 1;
               }else if (value > originalBestValue - radius)
               {
                   if (moveBonusRemaining > 0){
