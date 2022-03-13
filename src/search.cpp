@@ -42,17 +42,15 @@ namespace Search {
   LimitsType Limits;
   int numberOfBonus = 5;
   int moveBonusDepth = 5;
-  int smallBonus = 5;
+  int smallBonus = 7;
   int smallRadius = 5;
-  int mediumBonus = 10;
-  int mediumRadius = 10;
-  int largeBonus = 20;
-  int largeRadius = 20;
-  int smallAdvantage = 80;
-  int mediumAdvantage = 160;
-  int largeAdvantage = 320;
-
-  TUNE (numberOfBonus, moveBonusDepth, smallBonus, smallRadius, mediumBonus, mediumRadius, largeBonus, largeRadius, smallAdvantage, mediumAdvantage, largeAdvantage);
+  int mediumBonus = 6;
+  int mediumRadius = 9;
+  int largeBonus = 16;
+  int largeRadius = 19;
+  int smallAdvantage = 96;
+  int mediumAdvantage = 168;
+  int largeAdvantage = 368;
 }
 
 namespace Tablebases {
