@@ -38,7 +38,9 @@
 namespace Stockfish {
 
 namespace Search {
-
+  int GER_eval = 200;
+  int GER_reduction = 3;
+  TUNE(GER_eval, GER_reduction);
   LimitsType Limits;
 }
 
@@ -557,7 +559,7 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
-
+    Value rootEval = (ss-(ss->ply))->staticEval;
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     ss->inCheck        = pos.checkers();
@@ -1170,6 +1172,9 @@ moves_loop: // When in check, search starts here
           // is vastly different from static evaluation
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
               r--;
+
+          if ( bestValue - rootEval > GER_eval && (ss->ply)%2 == 0 )
+              r += GER_reduction;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
