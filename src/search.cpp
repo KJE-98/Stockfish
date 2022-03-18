@@ -38,9 +38,6 @@
 namespace Stockfish {
 
 namespace Search {
-  int GER_eval = 200;
-  int GER_reduction = 3;
-  TUNE(GER_eval, GER_reduction);
   LimitsType Limits;
 }
 
@@ -1173,8 +1170,8 @@ moves_loop: // When in check, search starts here
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
               r--;
 
-          if ( bestValue - rootEval > GER_eval && (ss->ply)%2 == 0 )
-              r += GER_reduction;
+          if ( bestValue - rootEval > 230 && (ss->ply)%2 == 0 )
+              r += 2;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
