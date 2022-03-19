@@ -1170,8 +1170,9 @@ moves_loop: // When in check, search starts here
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
               r--;
 
-          if ( bestValue - rootEval > 250 && (ss->ply)%2 == 0 )
-              r += 2 + (bestValue - rootEval > 500);
+          int rootEvalDiff = bestValue - rootEval;
+          if ( rootEvalDiff > 230 && (ss->ply) % 2 == 0 )
+              r += 2 + rootEvalDiff / 500;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
