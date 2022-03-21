@@ -1189,7 +1189,7 @@ moves_loop: // When in check, search starts here
                        : cutNode && moveCount <= 8 ? 1
                        :                             0;
 
-          if (newDepth > 10)
+          if (depth > 10)
               r = std::min( r , 5 );
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
