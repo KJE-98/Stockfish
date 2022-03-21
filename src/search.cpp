@@ -39,6 +39,9 @@ namespace Stockfish {
 
 namespace Search {
 
+  int lmr_cap_depth = 10;
+  int lmr_cap = 7;
+  TUNE(lmr_cap_depth, lmr_cap);
   LimitsType Limits;
 }
 
@@ -1189,8 +1192,8 @@ moves_loop: // When in check, search starts here
                        : cutNode && moveCount <= 8 ? 1
                        :                             0;
 
-          if (depth > 10)
-              r = std::min( r , 5 );
+          if (depth > lmr_cap_depth)
+              r = std::min( r , lmr_cap );
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
