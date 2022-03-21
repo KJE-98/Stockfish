@@ -1171,8 +1171,9 @@ moves_loop: // When in check, search starts here
               r--;
 
           int rootEvalDiff = bestValue - rootEval;
-          if ( rootEvalDiff > 240 && (ss->ply) % 2 == 0 )
-              r += 2 + (rootEvalDiff-240) / 700;
+
+          if ( rootEvalDiff > 230 && bestValue > alpha && (ss->ply) % 2 == 0)
+              r += 3 + (rootEvalDiff-230) / 500;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
