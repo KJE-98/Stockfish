@@ -1172,11 +1172,11 @@ moves_loop: // When in check, search starts here
 
           int rootEvalDiff = bestValue - rootEval;
 
-          if (   rootEvalDiff > 200
+          if (   rootEvalDiff > 240
               && bestValue >= alpha
               && ss->ply % 2 == 0
-              && depth > 10 ) {
-                r += 2 + (rootEvalDiff-200) / 500;
+              && depth > 5 ) {
+                r += 2;
               }
 
 
