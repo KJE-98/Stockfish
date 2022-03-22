@@ -1174,7 +1174,8 @@ moves_loop: // When in check, search starts here
 
           if (   rootEvalDiff > 240
               && bestValue >= alpha
-              && ss->ply % 2 == 0 ) {
+              && ss->ply % 2 == 0
+              && depth > 3 ) {
                 r += 1;
               }
 
