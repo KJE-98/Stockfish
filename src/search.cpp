@@ -1175,8 +1175,7 @@ moves_loop: // When in check, search starts here
           if (   rootEvalDiff > 230
               && bestValue > alpha
               && ss->ply % 2 == 0
-              && depth > 10
-            )
+              && depth > 10 )
               r += 2 + (rootEvalDiff-230) / 500;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
