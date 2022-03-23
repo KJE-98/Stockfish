@@ -38,6 +38,13 @@
 namespace Stockfish {
 
 namespace Search {
+  int deltaR_one = -10;
+  int deltaR_two = -20;
+  int deltaR_three = -10;
+  int deltaR_four = 20;
+  int deltaR_five = 10;
+  int deltaR_six = -10;
+  TUNE(deltaR_one, deltaR_two, deltaR_three, deltaR_four, deltaR_five, deltaR_six);
   LimitsType Limits;
 }
 
@@ -556,7 +563,6 @@ namespace {
     bool captureOrPromotion, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
-    Value rootEval = (ss-(ss->ply))->staticEval;
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     ss->inCheck        = pos.checkers();
@@ -1141,43 +1147,40 @@ moves_loop: // When in check, search starts here
               || (cutNode && (ss-1)->moveCount > 1)))
       {
           Depth r = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
-
+          double deltaR = 0;
           // Decrease reduction at some PvNodes (~2 Elo)
           if (   PvNode
               && bestMoveCount <= 3)
-              r--;
+              deltaR += deltaR_one;
+              //r--;
 
           // Decrease reduction if position is or has been on the PV
           // and node is not likely to fail low. (~3 Elo)
           if (   ss->ttPv
               && !likelyFailLow)
-              r -= 2;
+              deltaR += deltaR_two;
+              //r -= 2;
 
           // Decrease reduction if opponent's move count is high (~1 Elo)
           if ((ss-1)->moveCount > 7)
-              r--;
+              deltaR += deltaR_three;
+              //r--;
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode && move != ss->killers[0])
-              r += 2;
+              deltaR += deltaR_four;
+              //r += 2;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
-              r++;
+              deltaR += deltaR_five;
+              //r++;
 
           // Decrease reduction at PvNodes if bestvalue
           // is vastly different from static evaluation
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
-              r--;
-
-          int rootEvalDiff = bestValue - rootEval;
-
-          if (   rootEvalDiff > 240
-              && bestValue >= alpha
-              && ss->ply % 2 == 0
-              && depth < 5 ) {
-                r += 1;
-              }
+              deltaR += deltaR_six;
+              //r--;
 
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
@@ -1189,6 +1192,7 @@ moves_loop: // When in check, search starts here
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
           r -= ss->statScore / 15914;
 
+          r += deltaR/10;
           // In general we want to cap the LMR depth search at newDepth. But if reductions
           // are really negative and movecount is low, we allow this move to be searched
           // deeper than the first move (this may lead to hidden double extensions).
