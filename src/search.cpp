@@ -1170,12 +1170,11 @@ moves_loop: // When in check, search starts here
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
               r--;
 
-          int rootEvalDiff = bestValue - rootEval;
+          int rootEvalDiff = alpha - rootEval;
 
           if (   rootEvalDiff > 240
-              && bestValue >= alpha
               && ss->ply % 2 == 0
-              && depth < 5 ) {
+              && depth < 3 ) {
                 r += 1;
               }
 
