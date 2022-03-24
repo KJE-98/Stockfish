@@ -1175,7 +1175,7 @@ moves_loop: // When in check, search starts here
           if (   rootEvalDiff > 240
               && alpha - ss->staticEval > 40
               && ss->ply % 2 == 0
-              && depth < 3 ) {
+              && depth > 15  ) {
                 r += 1;
               }
 
