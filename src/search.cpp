@@ -40,7 +40,7 @@ namespace Stockfish {
 namespace Search {
   int deltaR_one = -19;
   int deltaR_two = -23;
-  int deltaR_three = -8;
+  int deltaR_three = -10;
   int deltaR_four = 24;
   int deltaR_five = 12;
   int deltaR_six = -15;
