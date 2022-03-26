@@ -38,12 +38,14 @@
 namespace Stockfish {
 
 namespace Search {
-  int deltaR_one = -19;
-  int deltaR_two = -23;
+  int deltaR_one = -10;
+  int deltaR_two = -20;
   int deltaR_three = -10;
-  int deltaR_four = 24;
-  int deltaR_five = 12;
-  int deltaR_six = -15;
+  int deltaR_four = 20;
+  int deltaR_five = 10;
+  int deltaR_six = -10;
+  int deltaR_seven = 1591;
+  TUNE(deltaR_one, deltaR_two, deltaR_three, deltaR_four, deltaR_five, deltaR_six, deltaR_seven);
   LimitsType Limits;
 }
 
@@ -1190,7 +1192,7 @@ moves_loop: // When in check, search starts here
                          - 4334;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          r -= ss->statScore / 15914;
+          deltaR -= ss->statScore / deltaR_seven;
 
           r += deltaR/10;
           // In general we want to cap the LMR depth search at newDepth. But if reductions
