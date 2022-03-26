@@ -1182,7 +1182,7 @@ moves_loop: // When in check, search starts here
           r -= ss->statScore / 15914;
 
           if ( depth < 20 )
-              r = r - ( r > 8 ) - ( r > 11 ) - ( r > 14 ) - ( r > 17 ) - ( r > 20 );
+              r = r - ( r > 7 ) - ( r > 10 ) - ( r > 13 ) - ( r > 16 ) - ( r > 19 );
 
           // In general we want to cap the LMR depth search at newDepth. But if reductions
           // are really negative and movecount is low, we allow this move to be searched
