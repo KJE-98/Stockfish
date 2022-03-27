@@ -1112,8 +1112,8 @@ moves_loop: // When in check, search starts here
               extension = 1;
 
           if (   depth == 1
-                 && abs(alpha) < 350
-                 && abs(beta) > 200
+                 && ss->staticEval > alpha - 50
+                 && ss->staticEval < beta + 50
                  && abs(ss->staticEval) > 250
                  && abs(ss->staticEval) < 300 )
               extension += 1;
