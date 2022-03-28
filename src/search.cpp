@@ -1148,35 +1148,29 @@ moves_loop: // When in check, search starts here
           if (   PvNode
               && bestMoveCount <= 3)
               deltaR += -20;
-              //r--;
 
           // Decrease reduction if position is or has been on the PV
           // and node is not likely to fail low. (~3 Elo)
           if (   ss->ttPv
               && !likelyFailLow)
               deltaR += -20;
-              //r -= 2;
 
           // Decrease reduction if opponent's move count is high (~1 Elo)
           if ((ss-1)->moveCount > 7)
               deltaR += -10;
-              //r--;
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode && move != ss->killers[0])
               deltaR += 23;
-              //r += 2;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
               deltaR += 7;
-              //r++;
 
           // Decrease reduction at PvNodes if bestvalue
           // is vastly different from static evaluation
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
               deltaR += -19;
-              //r--;
 
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
