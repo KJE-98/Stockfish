@@ -38,14 +38,13 @@
 namespace Stockfish {
 
 namespace Search {
-  int deltaR_one = -10;
+  int deltaR_one = -20;
   int deltaR_two = -20;
   int deltaR_three = -10;
-  int deltaR_four = 20;
-  int deltaR_five = 10;
-  int deltaR_six = -10;
-  int deltaR_seven = 1591;
-  TUNE(deltaR_one, deltaR_two, deltaR_three, deltaR_four, deltaR_five, deltaR_six, deltaR_seven);
+  int deltaR_four = 23;
+  int deltaR_five = 7;
+  int deltaR_six = -19;
+  int deltaR_seven = 2094;
   LimitsType Limits;
 }
 
