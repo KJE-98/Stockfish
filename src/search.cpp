@@ -38,13 +38,7 @@
 namespace Stockfish {
 
 namespace Search {
-  int deltaR_one = -20;
-  int deltaR_two = -20;
-  int deltaR_three = -10;
-  int deltaR_four = 23;
-  int deltaR_five = 7;
-  int deltaR_six = -19;
-  int deltaR_seven = 2094;
+
   LimitsType Limits;
 }
 
@@ -1141,6 +1135,7 @@ moves_loop: // When in check, search starts here
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
       // cases where we extend a son if it has good chances to be "interesting".
+
       if (    depth >= 2
           &&  moveCount > 1 + (PvNode && ss->ply <= 1)
           && (   !ss->ttPv
@@ -1152,35 +1147,35 @@ moves_loop: // When in check, search starts here
           // Decrease reduction at some PvNodes (~2 Elo)
           if (   PvNode
               && bestMoveCount <= 3)
-              deltaR += deltaR_one;
+              deltaR += -20;
               //r--;
 
           // Decrease reduction if position is or has been on the PV
           // and node is not likely to fail low. (~3 Elo)
           if (   ss->ttPv
               && !likelyFailLow)
-              deltaR += deltaR_two;
+              deltaR += -20;
               //r -= 2;
 
           // Decrease reduction if opponent's move count is high (~1 Elo)
           if ((ss-1)->moveCount > 7)
-              deltaR += deltaR_three;
+              deltaR += -10;
               //r--;
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode && move != ss->killers[0])
-              deltaR += deltaR_four;
+              deltaR += 23;
               //r += 2;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
-              deltaR += deltaR_five;
+              deltaR += 7;
               //r++;
 
           // Decrease reduction at PvNodes if bestvalue
           // is vastly different from static evaluation
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
-              deltaR += deltaR_six;
+              deltaR += -19;
               //r--;
 
 
@@ -1191,7 +1186,7 @@ moves_loop: // When in check, search starts here
                          - 4334;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          deltaR -= ss->statScore / deltaR_seven;
+          deltaR -= ss->statScore / 2094;
 
           r += deltaR/10;
           // In general we want to cap the LMR depth search at newDepth. But if reductions
