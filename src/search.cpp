@@ -1143,34 +1143,52 @@ moves_loop: // When in check, search starts here
               || (cutNode && (ss-1)->moveCount > 1)))
       {
           Depth r = reduction(improving, depth, moveCount, delta, thisThread->rootDelta);
+
           int deltaR = 0;
+
+          int deltaR_one = -10;
+          int deltaR_two = -20;
+          int deltaR_three = -10;
+          int deltaR_four = 20;
+          int deltaR_five = 10;
+          int deltaR_six = -10;
+          int deltaR_seven = 1591;
+          if (depth < 36){
+              deltaR_one = -19;
+              deltaR_two = -20;
+              deltaR_three = -10;
+              deltaR_four = 23;
+              deltaR_five = 7;
+              deltaR_six = -19;
+              deltaR_seven = 2094;
+          }
           // Decrease reduction at some PvNodes (~2 Elo)
           if (   PvNode
               && bestMoveCount <= 3)
-              deltaR += -19;
+              deltaR += deltaR_one;
 
           // Decrease reduction if position is or has been on the PV
           // and node is not likely to fail low. (~3 Elo)
           if (   ss->ttPv
               && !likelyFailLow)
-              deltaR += -20;
+              deltaR += deltaR_two;
 
           // Decrease reduction if opponent's move count is high (~1 Elo)
           if ((ss-1)->moveCount > 7)
-              deltaR += -10;
+              deltaR += deltaR_three;
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode && move != ss->killers[0])
-              deltaR += 23;
+              deltaR += deltaR_four;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
-              deltaR += 7;
+              deltaR += deltaR_five;
 
           // Decrease reduction at PvNodes if bestvalue
           // is vastly different from static evaluation
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
-              deltaR += -19;
+              deltaR += deltaR_six;
 
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
@@ -1180,7 +1198,7 @@ moves_loop: // When in check, search starts here
                          - 4334;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          deltaR -= ss->statScore / 2094;
+          deltaR -= ss->statScore / deltaR_seven;
 
           r += deltaR/10;
           // In general we want to cap the LMR depth search at newDepth. But if reductions
