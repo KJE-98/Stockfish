@@ -1152,7 +1152,7 @@ moves_loop: // When in check, search starts here
           int deltaR_four = 20;
           int deltaR_five = 10;
           int deltaR_six = -10;
-          int deltaR_seven = 1591;
+          int deltaR_seven = 1750;
           if (depth < 36){
               deltaR_one = -19;
               deltaR_two = -20;
