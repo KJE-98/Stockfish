@@ -1152,7 +1152,7 @@ moves_loop: // When in check, search starts here
           int deltaR_four = 20;
           int deltaR_five = 10;
           int deltaR_six = -10;
-          int deltaR_seven = 1750;
+          int deltaR_seven = 15914;
           if (depth < 36){
               deltaR_one = -19;
               deltaR_two = -20;
@@ -1198,8 +1198,11 @@ moves_loop: // When in check, search starts here
                          - 4334;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          deltaR -= ss->statScore / deltaR_seven;
-
+          if (depth < 36){
+              deltaR -= ss->statScore / deltaR_seven;
+          } else {
+              r -= ss->statScore / deltaR_seven;
+          }
           r += deltaR/10;
           // In general we want to cap the LMR depth search at newDepth. But if reductions
           // are really negative and movecount is low, we allow this move to be searched
