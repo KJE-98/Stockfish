@@ -1153,7 +1153,7 @@ moves_loop: // When in check, search starts here
           int deltaR_five = 10;
           int deltaR_six = -10;
           int deltaR_seven = 15914;
-          if (depth < 36){
+          if (depth < 50){
               deltaR_one = -19;
               deltaR_two = -20;
               deltaR_three = -10;
@@ -1198,7 +1198,7 @@ moves_loop: // When in check, search starts here
                          - 4334;
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          if (depth < 36){
+          if (depth < 50){
               deltaR -= ss->statScore / deltaR_seven;
           } else {
               r -= ss->statScore / deltaR_seven;
