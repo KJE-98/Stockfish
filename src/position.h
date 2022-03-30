@@ -134,6 +134,7 @@ public:
   bool pawn_passed(Color c, Square s) const;
   bool opposite_bishops() const;
   int  pawns_on_same_color_squares(Color c, Square s) const;
+  bool has_queen(Color side);
 
   // Doing and undoing moves
   void do_move(Move m, StateInfo& newSt);
@@ -307,6 +308,10 @@ inline bool Position::pawn_passed(Color c, Square s) const {
 
 inline int Position::pawns_on_same_color_squares(Color c, Square s) const {
   return popcount(pieces(c, PAWN) & ((DarkSquares & s) ? DarkSquares : ~DarkSquares));
+}
+
+inline bool Position::has_queen(Color side){
+  return pieces(side, QUEEN);
 }
 
 inline Key Position::key() const {
