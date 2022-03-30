@@ -1181,7 +1181,9 @@ moves_loop: // When in check, search starts here
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
           r -= ss->statScore / 15914;
 
-          if ( alpha > 300 && !pos.has_queen(pos.side_to_move())){
+          if (   alpha > 300
+              && !pos.has_queen(pos.side_to_move())
+              && thisThread->rootPos.has_queen(pos.side_to_move())){
               r += 2;
           }
 
