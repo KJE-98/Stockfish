@@ -566,7 +566,6 @@ namespace {
     moveCount          = bestMoveCount = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
-    Value rootEval = (ss-(ss->ply))->staticEval;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1179,13 +1178,12 @@ moves_loop: // When in check, search starts here
                          + (*contHist[3])[movedPiece][to_sq(move)]
                          - 4334;
 
-          int rootEvalDiff = bestValue - rootEval;
-          if (ss->ply % 2 == 1){
-              rootEvalDiff = bestValue + rootEval;
-          }
-          rootEvalDiff = std::clamp(rootEvalDiff, -400, 400);
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
-          r -= ss->statScore / ( 15914 - 5 * rootEvalDiff );
+          r -= ss->statScore / 15914;
+
+          if ( alpha > 300 && !pos.has_queen(pos.side_to_move())){
+              r += 2;
+          }
 
           // In general we want to cap the LMR depth search at newDepth. But if reductions
           // are really negative and movecount is low, we allow this move to be searched
