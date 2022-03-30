@@ -1184,7 +1184,7 @@ moves_loop: // When in check, search starts here
           if (   alpha > 300
               && !pos.has_queen(pos.side_to_move())
               && thisThread->rootPos.has_queen(pos.side_to_move())){
-              r += 2;
+              r -= 2;
           }
 
           // In general we want to cap the LMR depth search at newDepth. But if reductions
