@@ -1183,7 +1183,7 @@ moves_loop: // When in check, search starts here
 
           if (   alpha > 300
               && !pos.has_queen(pos.side_to_move())
-              && thisThread->rootPos.has_queen(pos.side_to_move())){
+              && thisThread->rootPos.has_queen(pos.side_to_move()) ){
               r -= 2;
           }
 
