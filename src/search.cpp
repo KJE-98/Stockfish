@@ -1381,9 +1381,9 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    topThree[1] = std::max(topThree[1], topThree[0]-400);
-    topThree[2] = std::max(topThree[2], topThree[0]-400);
-    if (moveCount > 2 && depth > 12){
+    //topThree[1] = std::max(topThree[1], topThree[0]-400);
+    //topThree[2] = std::max(topThree[2], topThree[0]-400);
+    if (moveCount > 2 && depth > 12 && alpha > 250){
       return Value(topThree[0]*9/10 + topThree[0]*1/20 + topThree[0]*1/20);
     }
     return bestValue;
