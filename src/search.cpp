@@ -1384,7 +1384,7 @@ moves_loop: // When in check, search starts here
     topThree[1] = std::max(topThree[1], topThree[0]-400);
     topThree[2] = std::max(topThree[2], topThree[0]-400);
     if (moveCount > 3){
-      return Value(topThree[0]*7/10 + topThree[0]*2/10 + topThree[0]*1/10);
+      return Value(topThree[0]*8/10 + topThree[0]*1/10 + topThree[0]*1/10);
     }
     return bestValue;
   }
