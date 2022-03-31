@@ -557,7 +557,6 @@ namespace {
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
-
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     ss->inCheck        = pos.checkers();
@@ -566,6 +565,7 @@ namespace {
     moveCount          = bestMoveCount = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    int topThree[3]    = {-VALUE_INFINITE};
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1280,6 +1280,17 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
+      if (value > topThree[0]){
+        topThree[0] = value;
+        topThree[1] = topThree[0];
+        topThree[2] = topThree[1];
+      } else if (value > topThree[1]){
+        topThree[1] = value;
+        topThree[2] = topThree[1];
+      } else if (value > topThree[2]){
+        topThree[2] = value;
+      }
+
       if (value > bestValue)
       {
           bestValue = value;
@@ -1370,6 +1381,11 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
+    topThree[1] = std::max(topThree[1], topThree[0]-400);
+    topThree[2] = std::max(topThree[2], topThree[0]-400);
+    if (moveCount > 3){
+      return Value(topThree[0]*7/10 + topThree[0]*2/10 + topThree[0]*1/10);
+    }
     return bestValue;
   }
 
