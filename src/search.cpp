@@ -477,8 +477,8 @@ void Thread::search() {
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
           double confidenceFactor = std::clamp(
                                                 (20.0 + (-1.0 * (confidence-9)))/20.0,
-                                                0.5,
-                                                1.5
+                                                0.7,
+                                                1.3
                                               );
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * confidenceFactor;
 
