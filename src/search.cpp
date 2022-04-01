@@ -480,8 +480,11 @@ void Thread::search() {
                                                 0.7,
                                                 1.3
                                               );
+          if (bestValue < 250)
+              confidenceFactor = 1.0;
+              
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * confidenceFactor;
-
+          sync_cout << "confidenceFactor: " << confidenceFactor << sync_endl;   
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
           if (rootMoves.size() == 1)
