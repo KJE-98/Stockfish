@@ -370,7 +370,8 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              int confidence = 0;
+              bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false, &confidence);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -814,8 +815,7 @@ namespace {
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
 
         pos.do_null_move(st);
-
-        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
+        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode, std::make_unique<int>(0));
 
         pos.undo_null_move();
 
@@ -835,7 +835,7 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
-            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
+            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false, std::make_unique<int>(0));
 
             thisThread->nmpMinPly = 0;
 
@@ -888,7 +888,7 @@ namespace {
 
                 // If the qsearch held, perform the regular search
                 if (value >= probCutBeta)
-                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
+                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode, std::make_unique<int>(0));
 
                 pos.undo_move(move);
 
@@ -965,6 +965,8 @@ moves_loop: // When in check, search starts here
 
       if (move == excludedMove)
           continue;
+
+      int move_confidence = 0;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -1072,7 +1074,7 @@ moves_loop: // When in check, search starts here
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
-              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode, std::make_unique<int>(0));
               ss->excludedMove = MOVE_NONE;
 
               if (value < singularBeta)
@@ -1191,8 +1193,8 @@ moves_loop: // When in check, search starts here
                        :                             0;
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
-
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          move_confidence = 0;
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, &move_confidence);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1208,7 +1210,8 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          move_confidence = 0;
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode, &move_confidence);
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1231,8 +1234,9 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
+          move_confidence = 0;
           value = -search<PV>(pos, ss+1, -beta, -alpha,
-                              std::min(maxNextDepth, newDepth), false);
+                              std::min(maxNextDepth, newDepth), false, &move_confidence);
       }
 
       // Step 19. Undo move
