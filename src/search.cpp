@@ -108,7 +108,7 @@ namespace {
   };
 
   template <NodeType nodeType>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, int* confidence);
 
   template <NodeType nodeType>
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = 0);
@@ -270,6 +270,7 @@ void Thread::search() {
   double timeReduction = 1, totBestMoveChanges = 0;
   Color us = rootPos.side_to_move();
   int iterIdx = 0;
+  int confidence = 0;
 
   std::memset(ss-7, 0, 10 * sizeof(Stack));
   for (int i = 7; i > 0; i--)
@@ -370,7 +371,7 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              int confidence = 0;
+              confidence = 0;
               bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false, &confidence);
 
               // Bring the best move to the front. It is critical that sorting
@@ -424,7 +425,11 @@ void Thread::search() {
 
           if (    mainThread
               && (Threads.stop || pvIdx + 1 == multiPV || Time.elapsed() > 3000))
-              sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
+              {
+                  sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
+                  sync_cout << "confidence: " << confidence << sync_endl;
+              }
+
       }
 
       if (!Threads.stop)
@@ -518,7 +523,7 @@ namespace {
   // search<>() is the main search function for both PV and non-PV nodes
 
   template <NodeType nodeType>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, int* confidence) {
 
     constexpr bool PvNode = nodeType != NonPV;
     constexpr bool rootNode = nodeType == Root;
@@ -558,7 +563,7 @@ namespace {
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
-
+    int topThree[3] = {-VALUE_INFINITE};
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     ss->inCheck        = pos.checkers();
@@ -567,6 +572,7 @@ namespace {
     moveCount          = bestMoveCount = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    int tempConfidence = 0;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -815,7 +821,8 @@ namespace {
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
 
         pos.do_null_move(st);
-        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode, std::make_unique<int>(0));
+        tempConfidence = 0;
+        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode, &tempConfidence);
 
         pos.undo_null_move();
 
@@ -835,7 +842,8 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
-            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false, std::make_unique<int>(0));
+            tempConfidence = 0;
+            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false, &tempConfidence);
 
             thisThread->nmpMinPly = 0;
 
@@ -888,7 +896,8 @@ namespace {
 
                 // If the qsearch held, perform the regular search
                 if (value >= probCutBeta)
-                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode, std::make_unique<int>(0));
+                    tempConfidence = 0;
+                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode, &tempConfidence );
 
                 pos.undo_move(move);
 
@@ -1074,7 +1083,8 @@ moves_loop: // When in check, search starts here
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
-              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode, std::make_unique<int>(0));
+              tempConfidence = 0;
+              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode, &tempConfidence);
               ss->excludedMove = MOVE_NONE;
 
               if (value < singularBeta)
@@ -1284,9 +1294,22 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
+
+      if (value > topThree[0]){
+        topThree[2] = topThree[1];
+        topThree[1] = topThree[0];
+        topThree[0] = value;
+      } else if (value > topThree[1]){
+        topThree[2] = topThree[1];
+        topThree[1] = value;
+      } else if (value > topThree[2]){
+        topThree[2] = value;
+      }
+
       if (value > bestValue)
       {
           bestValue = value;
+          *confidence = move_confidence;
 
           if (value > alpha)
           {
@@ -1374,6 +1397,8 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
+    if (ss->ply % 2 == 0 && depth > 1)
+        *confidence += (topThree[1] + 40 > bestValue) + (topThree[2] + 40 > bestValue);
     return bestValue;
   }
 
