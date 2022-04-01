@@ -173,20 +173,21 @@ void MovePicker::score() {
   }
 
   for (auto& m : *this)
+  {
       if constexpr (Type == CAPTURES)
-          m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
+          m.value =  5 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
       else if constexpr (Type == QUIETS)
           m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                    + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                   -     (*continuationHistory[0])[pos.moved_piece(m)][from_sq(m)]/2 * ( (*mainHistory)[pos.side_to_move()][from_to(m)] < 2000 )
+                   -     (*continuationHistory[0])[pos.moved_piece(m)][from_sq(m)]/4
                    +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
-                   -     (*continuationHistory[1])[pos.moved_piece(m)][from_sq(m)]/2 * ( (*mainHistory)[pos.side_to_move()][from_to(m)] < 2000 )
+                   -     (*continuationHistory[1])[pos.moved_piece(m)][from_sq(m)]/4
                    +     (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
-                   -     (*continuationHistory[3])[pos.moved_piece(m)][from_sq(m)]/2 * ( (*mainHistory)[pos.side_to_move()][from_to(m)] < 2000 )
+                   -     (*continuationHistory[3])[pos.moved_piece(m)][from_sq(m)]/4
                    +     (*continuationHistory[5])[pos.moved_piece(m)][to_sq(m)]
-                   -     (*continuationHistory[5])[pos.moved_piece(m)][from_sq(m)]/2 * ( (*mainHistory)[pos.side_to_move()][from_to(m)] < 2000 )
+                   -     (*continuationHistory[5])[pos.moved_piece(m)][from_sq(m)]/4
                    +     (threatened & from_sq(m) ?
                            (type_of(pos.piece_on(from_sq(m))) == QUEEN && !(to_sq(m) & threatenedByRook)  ? 50000
                           : type_of(pos.piece_on(from_sq(m))) == ROOK  && !(to_sq(m) & threatenedByMinor) ? 25000
@@ -204,6 +205,7 @@ void MovePicker::score() {
                        + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                        - (1 << 28);
       }
+  }
 }
 
 /// MovePicker::select() returns the next move satisfying a predicate function.
