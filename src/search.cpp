@@ -1384,7 +1384,7 @@ moves_loop: // When in check, search starts here
     topThree[1] = std::max(topThree[1], topThree[0]-400);
     topThree[2] = std::max(topThree[2], topThree[0]-400);
     if (moveCount > 2 && ss->ply > 10 && ss->ply < 20 && alpha > 250){
-      return Value( (topThree[0] * 8 + topThree[1] + topThree[2] + 5) / 10 );
+      return Value( (topThree[0] * 18 + topThree[1] + topThree[2] + 10) / 20 );
     }
     return bestValue;
   }
