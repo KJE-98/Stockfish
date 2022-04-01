@@ -1397,8 +1397,8 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if (ss->ply % 2 == 0 && depth > 1)
-        *confidence += (topThree[1] + 40 > bestValue) + (topThree[2] + 40 > bestValue);
+    if (ss->ply % 2 == 0 && depth > 8)
+        *confidence += (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue);
     return bestValue;
   }
 
