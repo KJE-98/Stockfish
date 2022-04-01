@@ -1281,12 +1281,12 @@ moves_loop: // When in check, search starts here
       }
 
       if (value > topThree[0]){
-        topThree[0] = value;
+        topThree[2] = topThree[1];
         topThree[1] = topThree[0];
-        topThree[2] = topThree[1];
+        topThree[0] = value;
       } else if (value > topThree[1]){
-        topThree[1] = value;
         topThree[2] = topThree[1];
+        topThree[1] = value;
       } else if (value > topThree[2]){
         topThree[2] = value;
       }
