@@ -1405,6 +1405,8 @@ moves_loop: // When in check, search starts here
 
     if (ss->ply % 2 == 0 && depth > 10)
         *confidence += ( 1 + (ss->ply < 10) ) * ( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) );
+    if (rootNode && topThree[1] + 200 < bestValue)
+        *confidence += 6;
     return bestValue;
   }
 
