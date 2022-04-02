@@ -476,15 +476,15 @@ void Thread::search() {
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
           double confidenceFactor = std::clamp(
-                                                (20.0 + (-1.0 * (confidence-9)))/20.0,
+                                                (20.0 + (-1.0 * (confidence-10)))/20.0,
                                                 0.7,
                                                 1.3
                                               );
-          if (bestValue < 250)
+          if (bestValue < 250) {
               confidenceFactor = 1.0;
-              
-          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * confidenceFactor;
-          sync_cout << "confidenceFactor: " << confidenceFactor << sync_endl;   
+            }
+
+          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * confidenceFactor;  
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
           if (rootMoves.size() == 1)
@@ -1403,8 +1403,8 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if (ss->ply % 2 == 0 && depth > 8)
-        *confidence += (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue);
+    if (ss->ply % 2 == 0 && depth > 10)
+        *confidence += ( 1 + (ss->ply < 10) ) * ( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) );
     return bestValue;
   }
 
