@@ -476,11 +476,11 @@ void Thread::search() {
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
           double confidenceFactor = std::clamp(
-                                                (20.0 + (-1.0 * (confidence-9)))/20.0,
+                                                (10.0 - confidence)/10.0,
                                                 0.6,
-                                                1.5
+                                                1.0
                                               );
-          if (bestValue < 230) {
+          if (bestValue < 250) {
               confidenceFactor = 1.0;
             }
 
@@ -1212,7 +1212,7 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
           move_confidence = 0;
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, &move_confidence);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250), -alpha + 20 * (ss->ply < 15 && alpha > 250), d, true, &move_confidence);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1229,7 +1229,7 @@ moves_loop: // When in check, search starts here
       if (doFullDepthSearch)
       {
           move_confidence = 0;
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode, &move_confidence);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250), -alpha + 20 * (ss->ply < 15 && alpha > 250), newDepth + doDeeperSearch, !cutNode, &move_confidence);
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1253,7 +1253,7 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv[0] = MOVE_NONE;
 
           move_confidence = 0;
-          value = -search<PV>(pos, ss+1, -beta, -alpha,
+          value = -search<PV>(pos, ss+1, -beta, -alpha + 20 * (ss->ply < 15 && alpha > 250),
                               std::min(maxNextDepth, newDepth), false, &move_confidence);
       }
 
@@ -1303,24 +1303,34 @@ moves_loop: // When in check, search starts here
       }
 
 
-      if (value > topThree[0]){
-        topThree[2] = topThree[1];
-        topThree[1] = topThree[0];
-        topThree[0] = value;
-      } else if (value > topThree[1]){
-        topThree[2] = topThree[1];
-        topThree[1] = value;
-      } else if (value > topThree[2]){
-        topThree[2] = value;
-      }
+      
 
       if (value > bestValue)
       {
           bestValue = value;
-          *confidence = move_confidence;
+
+          if (value > alpha - 20)
+          {
+                if (value > topThree[0])
+              {
+                  topThree[2] = topThree[1];
+                  topThree[1] = topThree[0];
+                  topThree[0] = value;
+              } 
+                else if (value > topThree[1])
+              {
+                  topThree[2] = topThree[1];
+                  topThree[1] = value;
+              } 
+                else if (value > topThree[2])
+              {
+                  topThree[2] = value;
+              }
+          }
 
           if (value > alpha)
           {
+              *confidence = move_confidence;
               bestMove = move;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
@@ -1405,10 +1415,9 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( ss->ply % 2 == 0 && depth > 10 )
-        *confidence += ( 1 + (ss->ply < 10) ) * ( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) );
-    if ( rootNode && topThree[1] + 200 < bestValue )
-        *confidence = 9;
+    if ( ss->ply % 2 == 0 && ss->ply < 15 && !rootNode && alpha > 250)
+        *confidence += (( 1 + (ss->ply < 10) ) * ( (topThree[1] + 60 > bestValue) + (topThree[2] + 60 > bestValue) ));
+
     return bestValue;
   }
 
