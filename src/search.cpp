@@ -1212,7 +1212,7 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
           move_confidence = 0;
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250), -alpha + 20 * (ss->ply < 15 && alpha > 250), d, true, &move_confidence);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), -alpha + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), d, true, &move_confidence);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1229,7 +1229,7 @@ moves_loop: // When in check, search starts here
       if (doFullDepthSearch)
       {
           move_confidence = 0;
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250), -alpha + 20 * (ss->ply < 15 && alpha > 250), newDepth + doDeeperSearch, !cutNode, &move_confidence);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), -alpha + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), newDepth + doDeeperSearch, !cutNode, &move_confidence);
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1253,7 +1253,7 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv[0] = MOVE_NONE;
 
           move_confidence = 0;
-          value = -search<PV>(pos, ss+1, -beta, -alpha + 20 * (ss->ply < 15 && alpha > 250),
+          value = -search<PV>(pos, ss+1, -beta, -alpha + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0),
                               std::min(maxNextDepth, newDepth), false, &move_confidence);
       }
 
