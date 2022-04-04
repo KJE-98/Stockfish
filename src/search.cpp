@@ -108,7 +108,7 @@ namespace {
   };
 
   template <NodeType nodeType>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, int* certainty);
 
   template <NodeType nodeType>
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = 0);
@@ -270,6 +270,7 @@ void Thread::search() {
   double timeReduction = 1, totBestMoveChanges = 0;
   Color us = rootPos.side_to_move();
   int iterIdx = 0;
+  int certainty = 0;
 
   std::memset(ss-7, 0, 10 * sizeof(Stack));
   for (int i = 7; i > 0; i--)
@@ -370,7 +371,8 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              certainty = 0;
+              bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false, &certainty);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -517,7 +519,7 @@ namespace {
   // search<>() is the main search function for both PV and non-PV nodes
 
   template <NodeType nodeType>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, int *certainty) {
 
     constexpr bool PvNode = nodeType != NonPV;
     constexpr bool rootNode = nodeType == Root;
@@ -554,7 +556,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
-    bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
+    bool capture, doFullDepthSearch, moveCountPruning, ttCapture, doCertaintySearch;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
 
@@ -566,6 +568,15 @@ namespace {
     moveCount          = bestMoveCount = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    int topThree[3]    = {-VALUE_INFINITE};
+    int tempCertainty = 0;
+    doCertaintySearch = false;
+
+    if (rootNode){
+        thisThread->rootAlpha = alpha;
+        thisThread->rootBeta = beta;
+        sync_cout << "in rootNode, alpha, beta , rootDepth " << alpha << ", " << beta << ", " << thisThread->rootDepth << sync_endl;
+    }
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -815,7 +826,7 @@ namespace {
 
         pos.do_null_move(st);
 
-        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
+        Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode, &tempCertainty);
 
         pos.undo_null_move();
 
@@ -835,7 +846,7 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
-            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
+            Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false, &tempCertainty);
 
             thisThread->nmpMinPly = 0;
 
@@ -888,7 +899,7 @@ namespace {
 
                 // If the qsearch held, perform the regular search
                 if (value >= probCutBeta)
-                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
+                    value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode, &tempCertainty);
 
                 pos.undo_move(move);
 
@@ -965,6 +976,11 @@ moves_loop: // When in check, search starts here
 
       if (move == excludedMove)
           continue;
+        
+      int move_certainty = 0;
+      int margin = 30 * (ss->ply < 10 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
+      int addCertainty = false;
+      bool certaintyEstimate = -VALUE_INFINITE;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -1072,7 +1088,7 @@ moves_loop: // When in check, search starts here
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
-              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode, &tempCertainty);
               ss->excludedMove = MOVE_NONE;
 
               if (value < singularBeta)
@@ -1192,12 +1208,13 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, &tempCertainty);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
           doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
           didLMR = true;
+          doCertaintySearch = margin && (value > alpha - margin);
       }
       else
       {
@@ -1208,7 +1225,9 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
+
+          doCertaintySearch = margin && (value > alpha - margin);
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1232,7 +1251,17 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv[0] = MOVE_NONE;
 
           value = -search<PV>(pos, ss+1, -beta, -alpha,
-                              std::min(maxNextDepth, newDepth), false);
+                              std::min(maxNextDepth, newDepth), false, &move_certainty);
+
+          doCertaintySearch = margin && (value > alpha - margin) && (value < alpha);
+      }
+
+      if (doCertaintySearch)
+      {
+          int tempValue = -search<NonPV>(pos, ss+1, -(alpha+1) + margin, -alpha + margin, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
+          if (tempValue > alpha - margin)
+              addCertainty = true;
+              certaintyEstimate = alpha + margin / 2;
       }
 
       // Step 19. Undo move
@@ -1284,8 +1313,31 @@ moves_loop: // When in check, search starts here
       {
           bestValue = value;
 
+          if ( margin && addCertainty )
+          {
+                if (certaintyEstimate > topThree[0])
+              {
+                  topThree[2] = topThree[1];
+                  topThree[1] = topThree[0];
+                  topThree[0] = certaintyEstimate;
+              } 
+                else if (value > topThree[1])
+              {
+                  topThree[2] = topThree[1];
+                  topThree[1] = certaintyEstimate;
+              } 
+                else if (value > topThree[2])
+              {
+                  topThree[2] = certaintyEstimate;
+              }
+          }
+
           if (value > alpha)
           {
+              topThree[2] = topThree[1];
+              topThree[1] = topThree[0];
+              topThree[0] = value;
+              *certainty = move_certainty;
               bestMove = move;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
@@ -1369,6 +1421,12 @@ moves_loop: // When in check, search starts here
                   depth, bestMove, ss->staticEval);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
+
+    if ( !rootNode && (ss->ply < 10 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 12))
+        *certainty += (( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) ));
+
+    if (ss->ply == 1 && bestMove && bestValue > 15000)
+        bestValue = bestValue + *certainty * 60;
 
     return bestValue;
   }
