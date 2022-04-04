@@ -71,6 +71,7 @@ struct RootMove {
                             : m.previousScore < previousScore;
   }
 
+  Value scoreConfidenceMix = -VALUE_INFINITE;
   Value score = -VALUE_INFINITE;
   Value previousScore = -VALUE_INFINITE;
   Value averageScore = -VALUE_INFINITE;

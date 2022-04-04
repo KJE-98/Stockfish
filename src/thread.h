@@ -69,8 +69,9 @@ public:
   Position rootPos;
   StateInfo rootState;
   Search::RootMoves rootMoves;
+  Search::RootMoves rootMovesReorder;
   Depth rootDepth, completedDepth;
-  Value rootDelta;
+  Value rootDelta, rootAlpha, rootBeta;
   CounterMoveHistory counterMoves;
   ButterflyHistory mainHistory;
   CapturePieceToHistory captureHistory;

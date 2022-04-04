@@ -179,6 +179,7 @@ void ThreadPool::start_thinking(Position& pos, StateListPtr& states,
   main()->ponder = ponderMode;
   Search::Limits = limits;
   Search::RootMoves rootMoves;
+  Search::RootMoves rootMovesReorder;
 
   for (const auto& m : MoveList<LEGAL>(pos))
       if (   limits.searchmoves.empty()

@@ -323,8 +323,11 @@ void Thread::search() {
 
       // Save the last iteration's scores before first PV line is searched and
       // all the move scores except the (new) PV are set to -VALUE_INFINITE.
-      for (RootMove& rm : rootMoves)
+      for (RootMove& rm : rootMoves){
           rm.previousScore = rm.score;
+          rm.scoreConfidenceMix = Value(0);
+      }
+          
 
       size_t pvFirst = 0;
       pvLast = 0;
@@ -484,7 +487,7 @@ void Thread::search() {
               confidenceFactor = 1.0;
             }
 
-          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * confidenceFactor;
+          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
 
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
@@ -564,7 +567,7 @@ namespace {
 
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove;
+    Move ttMove, move, excludedMove, bestMove, bestMoveWithoutConf;
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
@@ -581,6 +584,12 @@ namespace {
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
     int tempConfidence = 0;
+    Value bestValueWithoutConf = -VALUE_INFINITE;
+    if (rootNode){
+        thisThread->rootAlpha = alpha;
+        thisThread->rootBeta = beta;
+        sync_cout << "in rootNode, alpha, beta , rootDepth " << alpha << ", " << beta << ", " << thisThread->rootDepth << sync_endl;
+    }
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -976,6 +985,7 @@ moves_loop: // When in check, search starts here
 
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
+    int margin = 0;
     while ((move = mp.next_move(moveCountPruning)) != MOVE_NONE)
     {
       assert(is_ok(move));
@@ -984,6 +994,7 @@ moves_loop: // When in check, search starts here
           continue;
 
       int move_confidence = 0;
+      margin = 30 * (ss->ply < 10 && alpha > 300 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -1212,7 +1223,7 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
           move_confidence = 0;
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), -alpha + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), d, true, &move_confidence);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin, -alpha + margin, d, true, &move_confidence);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1229,7 +1240,7 @@ moves_loop: // When in check, search starts here
       if (doFullDepthSearch)
       {
           move_confidence = 0;
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), -alpha + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0), newDepth + doDeeperSearch, !cutNode, &move_confidence);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin, -alpha + margin, newDepth + doDeeperSearch, !cutNode, &move_confidence);
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1247,13 +1258,13 @@ moves_loop: // When in check, search starts here
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
-      if (PvNode && (moveCount == 1 || (value > alpha && (rootNode || value < beta))))
+      if (PvNode && (moveCount == 1 || (value > alpha - margin && (rootNode || value < beta))))
       {
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
           move_confidence = 0;
-          value = -search<PV>(pos, ss+1, -beta, -alpha + 20 * (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0),
+          value = -search<PV>(pos, ss+1, -beta, -alpha + margin,
                               std::min(maxNextDepth, newDepth), false, &move_confidence);
       }
 
@@ -1275,10 +1286,19 @@ moves_loop: // When in check, search starts here
                                     thisThread->rootMoves.end(), move);
 
           rm.averageScore = rm.averageScore != -VALUE_INFINITE ? (2 * value + rm.averageScore) / 3 : value;
-
+          if (moveCount == 1 || value > alpha - margin)
+          {
+              rm.scoreConfidenceMix = value + move_confidence * 60;
+              if (moveCount == 1 || bestValueWithoutConf < value - move_confidence * 60)
+              {
+                  bestValueWithoutConf = value - move_confidence * 60;
+                  bestMoveWithoutConf = move;
+              }
+          }
           // PV move or new best move?
           if (moveCount == 1 || value > alpha)
           {
+
               rm.score = value;
               rm.selDepth = thisThread->selDepth;
               rm.pv.resize(1);
@@ -1309,7 +1329,7 @@ moves_loop: // When in check, search starts here
       {
           bestValue = value;
 
-          if (value > alpha - 20)
+          if (value > alpha - margin)
           {
                 if (value > topThree[0])
               {
@@ -1415,9 +1435,14 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( ss->ply % 2 == 0 && ss->ply < 15 && !rootNode && alpha > 250)
-        *confidence += (( 1 + (ss->ply < 10) ) * ( (topThree[1] + 60 > bestValue) + (topThree[2] + 60 > bestValue) ));
+    if ( !rootNode && margin)
+        *confidence += (( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) ));
 
+    if (rootNode && bestMove != bestMoveWithoutConf && bestMove)
+        sync_cout << "no confidence prefers " << UCI::move(bestMoveWithoutConf, false) << " over " << UCI::move(bestMove, false) << sync_endl;
+
+    if (ss->ply == 1 && bestMove && bestValue > 15000)
+        bestValue = bestValue + *confidence * 60;
     return bestValue;
   }
 
