@@ -425,7 +425,6 @@ void Thread::search() {
           if (    mainThread
               && (Threads.stop || pvIdx + 1 == multiPV || Time.elapsed() > 3000))
               sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
-              sync_cout << "certainty " << certainty << sync_endl;
       }
 
       if (!Threads.stop)
@@ -472,8 +471,9 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
+          double certaintyFactor = certainty == 1 ? .7 : std::clamp((5.0 - certainty)/5.0, 0.3, 1.0);
 
-          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
+          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
@@ -572,10 +572,6 @@ namespace {
     int tempCertainty = 0;
     doCertaintySearch = false;
 
-    if (rootNode){
-        thisThread->rootAlpha = alpha;
-        thisThread->rootBeta = beta;
-    }
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -979,7 +975,6 @@ moves_loop: // When in check, search starts here
       int move_certainty = 0;
       int margin = 40 * (PvNode && ss->ply < 13 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 13);
       int addCertainty = false;
-      bool certaintyEstimate = -VALUE_INFINITE;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
