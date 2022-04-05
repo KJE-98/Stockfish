@@ -977,7 +977,7 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 20 * (PvNode && ss->ply < 11 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 13);
+      int margin = 40 * (PvNode && ss->ply < 13 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 13);
       int addCertainty = false;
       bool certaintyEstimate = -VALUE_INFINITE;
 
