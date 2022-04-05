@@ -973,7 +973,7 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 30 * (PvNode && ss->ply < 13 && alpha > 300 && ss->ply % 2 == 0 && thisThread->rootDepth > 10);
+      int margin = 40 * (PvNode && ss->ply < 13 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth > 10);
       int addCertainty = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -1411,10 +1411,10 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && (ss->ply < 15 && alpha > 300 && ss->ply % 2 == 0 && thisThread->rootDepth>10))
-        *certainty += ( (topThree[1] + 30 > bestValue) + (topThree[2] + 30 > bestValue) );
+    if ( bestMove && !rootNode && (ss->ply < 15 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth>10))
+        *certainty += ( (topThree[1] + 40 > bestValue) + (topThree[2] + 40 > bestValue) );
 
-    if ( bestMove && rootNode && alpha > 300 && thisThread->rootDepth>10)
+    if ( bestMove && rootNode && alpha > 500 && thisThread->rootDepth>10)
         *certainty += ( (topThree[1] + 40 < bestValue) && (topThree[2] + 40 < bestValue) );
 
     return bestValue;
