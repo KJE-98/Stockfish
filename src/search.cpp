@@ -471,8 +471,8 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
-          double certaintyFactor = std::clamp((8.0 - certainty)/8.0, 1.0, 1.0);
-          
+          double certaintyFactor = std::clamp((8.0 - certainty)/8.0, 0.6, 1.0);
+
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
 
@@ -973,7 +973,7 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 40 * (PvNode && ss->ply < 13 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
+      int margin = 30 * (PvNode && ss->ply < 13 && alpha > 300 && ss->ply % 2 == 0 && thisThread->rootDepth > 10);
       int addCertainty = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -1411,9 +1411,8 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && (ss->ply < 15 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth>12))
-        *certainty += ( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) );
-
+    if ( bestMove && !rootNode && (ss->ply < 15 && alpha > 300 && ss->ply % 2 == 0 && thisThread->rootDepth>10))
+        *certainty += ( (topThree[1] + 30 > bestValue) + (topThree[2] + 30 > bestValue) );
 
     return bestValue;
   }
