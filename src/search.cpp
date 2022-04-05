@@ -1414,6 +1414,9 @@ moves_loop: // When in check, search starts here
     if ( bestMove && !rootNode && (ss->ply < 15 && alpha > 300 && ss->ply % 2 == 0 && thisThread->rootDepth>10))
         *certainty += ( (topThree[1] + 30 > bestValue) + (topThree[2] + 30 > bestValue) );
 
+    if ( bestMove && rootNode && alpha > 300 && thisThread->rootDepth>10)
+        *certainty += ( (topThree[1] + 40 < bestValue) && (topThree[2] + 40 < bestValue) );
+
     return bestValue;
   }
 
