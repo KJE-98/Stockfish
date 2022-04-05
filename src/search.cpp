@@ -1224,8 +1224,9 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin * (!didLMR), -alpha + margin * (!didLMR), newDepth + doDeeperSearch, !cutNode, &tempCertainty);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin, -alpha + margin, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
 
+          addCertainty = value > alpha - margin;
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1241,7 +1242,7 @@ moves_loop: // When in check, search starts here
           }
           else
           {
-              addCertainty = value > alpha - margin;
+              
           }
       }
 
