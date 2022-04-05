@@ -572,7 +572,6 @@ namespace {
     int tempCertainty = 0;
     doCertaintySearch = false;
 
-
     // Check for the available remaining time
     if (thisThread == Threads.main())
         static_cast<MainThread*>(thisThread)->check_time();
