@@ -977,7 +977,7 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 30 * (ss->ply < 10 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 13);
+      int margin = 20 * (PvNode && ss->ply < 11 && alpha > 250 && ss->ply % 2 == 0 && thisThread->rootDepth > 13);
       int addCertainty = false;
       bool certaintyEstimate = -VALUE_INFINITE;
 
@@ -1224,13 +1224,13 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin, -alpha + margin, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin * (!didLMR), -alpha + margin * (!didLMR), newDepth + doDeeperSearch, !cutNode, &tempCertainty);
 
-          addCertainty = value > alpha - margin;
 
           // If the move passed LMR update its stats
           if (didLMR)
           {
+
               int bonus = value > alpha ?  stat_bonus(newDepth)
                                         : -stat_bonus(newDepth);
 
@@ -1239,12 +1239,16 @@ moves_loop: // When in check, search starts here
 
               update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
           }
+          else
+          {
+              addCertainty = value > alpha - margin;
+          }
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
-      if (PvNode && (moveCount == 1 || (value > alpha && (rootNode || value < beta))))
+      if (PvNode && (moveCount == 1 || (value > alpha - margin * (!didLMR) && (rootNode || value < beta))))
       {
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
