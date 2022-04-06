@@ -971,7 +971,7 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 40 * (PvNode && ss->ply < 17 && alpha > 400 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
+      int margin = 0 * (PvNode && ss->ply < 17 && alpha > 400 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
       int addCertainty = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -1220,6 +1220,7 @@ moves_loop: // When in check, search starts here
       {
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
 
+          addCertainty = value > alpha - margin;
           // If the move passed LMR update its stats
           if (didLMR)
           {
@@ -1244,6 +1245,8 @@ moves_loop: // When in check, search starts here
 
           value = -search<PV>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false, &move_certainty);
+
+          addCertainty = value > alpha - margin;
       }
 
 
