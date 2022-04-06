@@ -1131,7 +1131,6 @@ moves_loop: // When in check, search starts here
       pos.do_move(move, st, givesCheck);
 
       bool doDeeperSearch = false;
-      int resilience = 0;
 
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
       // We use various heuristics for the sons of a node after the first son has
@@ -1215,8 +1214,6 @@ moves_loop: // When in check, search starts here
       {
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
 
-          if (value > alpha && ss->statScore < -17000)
-              resilience = 1;
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1240,7 +1237,7 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv[0] = MOVE_NONE;
 
           value = -search<PV>(pos, ss+1, -beta, -alpha,
-                              std::min(maxNextDepth, newDepth + resilience), false);
+                              std::min(maxNextDepth, newDepth), false);
       }
 
       // Step 19. Undo move
