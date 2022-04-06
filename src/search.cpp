@@ -472,9 +472,8 @@ void Thread::search() {
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
           double certaintyFactor = std::clamp((9.0 - certainty)/9.0, 0.6, 1.0);
-
+          sync_cout << "certainty: " << certainty << " certaintyFactor: " << certaintyFactor << sync_endl;
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
-
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
           if (rootMoves.size() == 1)
@@ -972,7 +971,7 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 40 * (PvNode && ss->ply > 5 && ss->ply < 17 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
+      int margin = 40 * (PvNode && ss->ply < 17 && alpha > 400 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
       int addCertainty = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -1219,9 +1218,7 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin, -alpha + margin, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
-
-          addCertainty = value > alpha - margin;
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1235,24 +1232,18 @@ moves_loop: // When in check, search starts here
 
               update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
           }
-          else
-          {
-              
-          }
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
-      if (PvNode && (moveCount == 1 || (value > alpha - margin && (rootNode || value < beta))))
+      if (PvNode && (moveCount == 1 || (value > alpha && (rootNode || value < beta))))
       {
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
           value = -search<PV>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false, &move_certainty);
-
-          addCertainty = value > alpha - margin;
       }
 
 
@@ -1411,7 +1402,7 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && (ss->ply > 5 && ss->ply < 17 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth>12))
+    if ( bestMove && !rootNode && (ss->ply < 17 && alpha > 400 && ss->ply % 2 == 0 && thisThread->rootDepth>12))
         *certainty += ( (topThree[1] + 40 > bestValue) + (topThree[2] + 40 > bestValue) );
 
     return bestValue;
