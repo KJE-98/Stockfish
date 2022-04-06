@@ -471,7 +471,7 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
-          double certaintyFactor = std::clamp((7.0 - certainty)/7.0, 0.4, 1.0);
+          double certaintyFactor = std::clamp((9.0 - certainty)/9.0, 0.6, 1.0);
 
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
@@ -973,7 +973,7 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 40 * (PvNode && ss->ply < 13 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth > 10);
+      int margin = 30 * (PvNode && ss->ply < 11 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
       int addCertainty = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -1182,6 +1182,8 @@ moves_loop: // When in check, search starts here
           if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
               r--;
 
+          if (PvNode && *certainty > 1)
+              r++;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1412,9 +1414,11 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && (ss->ply < 15 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth>10))
+    if ( bestMove && !rootNode && (ss->ply < 11 && alpha > 500 && ss->ply % 2 == 0 && thisThread->rootDepth>12))
         *certainty += ( (topThree[1] + 40 > bestValue) + (topThree[2] + 40 > bestValue) );
 
+    if ( bestMove && rootNode && alpha > 500 && thisThread->rootDepth>12)
+        *certainty += ( (topThree[1] + 40 < bestValue) && (topThree[2] + 40 < bestValue) );
 
     return bestValue;
   }
