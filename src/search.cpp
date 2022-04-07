@@ -471,7 +471,7 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
-          double certaintyFactor = std::clamp((10.0 - certainty)/10.0, 0.6, 1.0);
+          double certaintyFactor = std::clamp((8.0 - certainty)/8.0, 0.6, 1.0);
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
@@ -970,7 +970,6 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int margin = 0 * (PvNode && ss->ply < 17 && alpha > 400 && ss->ply % 2 == 0 && thisThread->rootDepth > 12);
       int addCertainty = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
@@ -1139,6 +1138,19 @@ moves_loop: // When in check, search starts here
 
       bool doDeeperSearch = false;
 
+      // Shallow search slightly below alpha to find close moves (-VALUE_INFINITE Elo)
+
+      if (   PvNode
+          && alpha > 400
+          && depth > 10  
+          && ss->ply % 2 == 0
+         )
+         {
+             Value certaintyValue = -search<NonPV>(pos, ss+1, -(alpha+1)+40, -alpha+40, 2 * depth / 3, !cutNode, &tempCertainty);
+
+             addCertainty = certaintyValue > alpha - 40;
+         }
+
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
@@ -1200,13 +1212,13 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1) + margin, -alpha + margin, d, true, &tempCertainty);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true, &tempCertainty);
 
           // If the son is reduced and fails high it will be re-searched at full depth
-          doFullDepthSearch = value > alpha - margin && d < newDepth;
+          doFullDepthSearch = value > alpha && d < newDepth;
           doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
           didLMR = true;
-          addCertainty = value > alpha - margin;
+          addCertainty = addCertainty && (value > alpha - 40);
       }
       else
       {
@@ -1219,7 +1231,7 @@ moves_loop: // When in check, search starts here
       {
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
 
-          addCertainty = value > alpha - margin;
+          addCertainty = addCertainty && (value > alpha - 40);
           // If the move passed LMR update its stats
           if (didLMR)
           {
@@ -1245,7 +1257,7 @@ moves_loop: // When in check, search starts here
           value = -search<PV>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false, &move_certainty);
 
-          addCertainty = value > alpha - margin;
+          addCertainty = addCertainty && (value > alpha - 40);
       }
 
 
@@ -1404,8 +1416,8 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && (ss->ply < 17 && alpha > 400 && ss->ply % 2 == 0 && thisThread->rootDepth>12))
-        *certainty += ( (topThree[1] + 40 > bestValue) + (topThree[2] + 40 > bestValue) );
+    if ( bestMove && !rootNode && (depth > 10 && alpha > 400 && ss->ply % 2 == 0))
+        *certainty += ( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) );
 
     return bestValue;
   }
