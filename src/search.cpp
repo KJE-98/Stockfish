@@ -554,7 +554,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
-    bool capture, doFullDepthSearch, moveCountPruning, ttCapture, doCertaintySearch;
+    bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, bestMoveCount, improvement, complexity;
 
@@ -566,9 +566,7 @@ namespace {
     moveCount          = bestMoveCount = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
-    int topThree[3]    = {-VALUE_INFINITE};
     int tempCertainty = 0;
-    doCertaintySearch = false;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -970,7 +968,6 @@ moves_loop: // When in check, search starts here
           continue;
         
       int move_certainty = 0;
-      int addCertainty = false;
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -1138,19 +1135,6 @@ moves_loop: // When in check, search starts here
 
       bool doDeeperSearch = false;
 
-      // Shallow search slightly below alpha to find close moves (-VALUE_INFINITE Elo)
-
-      if (   PvNode
-          && alpha > 400
-          && depth > 10  
-          && ss->ply % 2 == 0
-         )
-         {
-             Value certaintyValue = -search<NonPV>(pos, ss+1, -(alpha+1)+40, -alpha+40, 2 * depth / 3, !cutNode, &tempCertainty);
-
-             addCertainty = certaintyValue > alpha - 40;
-         }
-
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
@@ -1218,7 +1202,6 @@ moves_loop: // When in check, search starts here
           doFullDepthSearch = value > alpha && d < newDepth;
           doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
           didLMR = true;
-          addCertainty = addCertainty && (value > alpha - 40);
       }
       else
       {
@@ -1231,7 +1214,6 @@ moves_loop: // When in check, search starts here
       {
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode, &tempCertainty);
 
-          addCertainty = addCertainty && (value > alpha - 40);
           // If the move passed LMR update its stats
           if (didLMR)
           {
@@ -1256,8 +1238,6 @@ moves_loop: // When in check, search starts here
 
           value = -search<PV>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false, &move_certainty);
-
-          addCertainty = addCertainty && (value > alpha - 40);
       }
 
 
@@ -1310,24 +1290,6 @@ moves_loop: // When in check, search starts here
       {
           bestValue = value;
 
-          if (addCertainty)
-          {
-                if (value > topThree[0])
-              {
-                  topThree[2] = topThree[1];
-                  topThree[1] = topThree[0];
-                  topThree[0] = value;
-              } 
-                else if (value > topThree[1])
-              {
-                  topThree[2] = topThree[1];
-                  topThree[1] = value;
-              } 
-                else if (value > topThree[2])
-              {
-                  topThree[2] = value;
-              }
-          }
 
           if (value > alpha)
           {
@@ -1416,8 +1378,8 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && (depth > 10 && alpha > 400 && ss->ply % 2 == 0))
-        *certainty += ( (topThree[1] + 50 > bestValue) + (topThree[2] + 50 > bestValue) );
+    if ( bestMove && !rootNode && depth > 10 && ss->ply % 2 == 0)
+        *certainty += ( bestValue < ss->staticEval - ss->ply * 2 * depth );
 
     return bestValue;
   }
