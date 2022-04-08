@@ -41,8 +41,8 @@ namespace Search {
   int certaintyDenom = 9;
   int certaintyMin = 6;
   int certaintyDepthMultiplier = 3;
-  int certaintyDepthMin = 8;
-  int certaintyAlpha = 300;
+  int certaintyDepthMin = 7;
+  int certaintyAlpha = 250;
 
   LimitsType Limits;
 }
