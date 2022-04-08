@@ -370,7 +370,17 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              sync_cout << "alpha, beta: " << alpha << ", " << beta  << sync_endl;
+              Value alphaTest = Stockfish::search<Root>(rootPos, ss, alpha, alpha + 1, adjustedDepth, false);
+              bestValue = alphaTest;
+              if (alphaTest > alpha){
+                  //Value betaTest = Stockfish::search<Root>(rootPos, ss, beta - 1, beta, adjustedDepth, false);
+                  //bestValue = betaTest;
+                  if (true){
+                       bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+                  }
+              }
+              
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
