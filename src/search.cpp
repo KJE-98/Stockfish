@@ -38,12 +38,12 @@
 namespace Stockfish {
 
 namespace Search {
-  int certaintyDenom = 8;
-  int certaintyMin = 5;
-  int certaintyDepthMultiplier = 4;
-  int certaintyDepthMin = 5;
-  int certaintyAlpha = 200;
-  TUNE(certaintyAlpha, certaintyDenom, certaintyMin, certaintyDepthMultiplier, certaintyDepthMin);
+  int certaintyDenom = 9;
+  int certaintyMin = 6;
+  int certaintyDepthMultiplier = 3;
+  int certaintyDepthMin = 8;
+  int certaintyAlpha = 300;
+
   LimitsType Limits;
 }
 
