@@ -38,7 +38,12 @@
 namespace Stockfish {
 
 namespace Search {
-
+  int certaintyDenom = 8;
+  int certaintyMin = 5;
+  int certaintyDepthMultiplier = 4;
+  int certaintyDepthMin = 5;
+  int certaintyAlpha = 200;
+  TUNE(certaintyAlpha, certaintyDenom, certaintyMin, certaintyDepthMultiplier, certaintyDepthMin);
   LimitsType Limits;
 }
 
@@ -372,9 +377,8 @@ void Thread::search() {
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
               certainty = 0;
-
               bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
-              certainty = (ss+1)->certainty;
+              certainty = ss->certainty;
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
               // first and eventually the new best one are set to -VALUE_INFINITE
@@ -427,7 +431,6 @@ void Thread::search() {
           if (    mainThread
               && (Threads.stop || pvIdx + 1 == multiPV || Time.elapsed() > 3000))
               sync_cout << UCI::pv(rootPos, rootDepth, alpha, beta) << sync_endl;
-              sync_cout << "certainty: " << certainty << sync_endl;
       }
 
       if (!Threads.stop)
@@ -474,7 +477,7 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
-          double certaintyFactor = std::clamp((8.0 - certainty)/8.0, 0.6, 1.0);
+          double certaintyFactor = std::clamp((1.0 * certaintyDenom - certainty)/certaintyDenom, 1.0 * certaintyMin / 10, 1.0);
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
@@ -578,6 +581,7 @@ namespace {
     // Used to send selDepth info to GUI (selDepth counts from 1, ply from 0)
     if (PvNode && thisThread->selDepth < ss->ply + 1)
         thisThread->selDepth = ss->ply + 1;
+
 
     if (!rootNode)
     {
@@ -1380,8 +1384,8 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && depth > 10 && ss->ply % 2 == 0 && alpha > 300 )
-        ss->certainty += ( bestValue < ss->staticEval - ss->ply * 2 * depth );
+    if ( bestMove && !rootNode && depth > certaintyDepthMin && ss->ply % 2 == 0 && alpha > certaintyAlpha )
+        ss->certainty += ( bestValue < ss->staticEval - ss->ply * certaintyDepthMultiplier * depth );
 
     return bestValue;
   }
