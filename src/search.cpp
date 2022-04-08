@@ -40,9 +40,9 @@ namespace Stockfish {
 namespace Search {
   int certaintyDenom = 9;
   int certaintyMin = 6;
-  int certaintyDepthMultiplier = 3;
-  int certaintyDepthMin = 7;
-  int certaintyAlpha = 250;
+  int certaintyDepthMultiplier = 2;
+  int certaintyDepthMin = 10;
+  int certaintyAlpha = 300;
 
   LimitsType Limits;
 }
