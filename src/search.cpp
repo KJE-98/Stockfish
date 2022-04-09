@@ -478,6 +478,7 @@ void Thread::search() {
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
           double certaintyFactor = std::clamp((1.0 * certaintyDenom - certainty)/certaintyDenom, 1.0 * certaintyMin / 10, 1.0);
+          sync_cout << "certainty: " << certainty << sync_endl;
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
@@ -1384,7 +1385,7 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !rootNode && depth > certaintyDepthMin && ss->ply % 2 == 0 && alpha > certaintyAlpha )
+    if ( bestMove && !rootNode && depth > thisThread->rootDepth / 4 && ss->ply % 2 == 0 && alpha > certaintyAlpha )
         ss->certainty += ( bestValue < ss->staticEval + certaintyDepthMultiplier * depth );
 
     return bestValue;
