@@ -38,9 +38,9 @@
 namespace Stockfish {
 
 namespace Search {
-  int certaintyDenom = 9;
+  int certaintyDenom = 10;
   int certaintyMin = 6;
-  int certaintyDepthMultiplier = 2;
+  int certaintyDepthMultiplier = 3;
   int certaintyDepthMin = 10;
   int certaintyAlpha = 300;
 
@@ -477,6 +477,7 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
+          
           double certaintyFactor = std::clamp((1.0 * certaintyDenom - certainty)/certaintyDenom, 1.0 * certaintyMin / 10, 1.0);
 
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * certaintyFactor;
@@ -1386,7 +1387,7 @@ moves_loop: // When in check, search starts here
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
     if ( bestMove && !rootNode && depth > certaintyDepthMin && ss->ply % 2 == 0 && alpha > certaintyAlpha )
-        ss->certainty += ( bestValue < ss->staticEval + ss->ply * certaintyDepthMultiplier * depth );
+        ss->certainty += ( bestValue < ss->staticEval + certaintyDepthMultiplier * depth );
 
     return bestValue;
   }
