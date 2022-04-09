@@ -40,7 +40,7 @@ namespace Stockfish {
 namespace Search {
   int certaintyDenom = 9;
   int certaintyMin = 6;
-  int certaintyDepthMultiplier = 3;
+  int certaintyDepthMultiplier = 5;
   int certaintyDepthMin = 8;
   int certaintyAlpha = 300;
 
@@ -1384,10 +1384,11 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !ss->inCheck && !rootNode && depth > thisThread->rootDepth / 3 + 3 && ss->ply % 2 == 0 && alpha > certaintyAlpha )
-        ss->certainty += ( bestValue < ss->staticEval + 20 + certaintyDepthMultiplier * depth );
+    if ( bestMove && !(ss->inCheck) && !rootNode && depth > thisThread->rootDepth / 3 + 3 && ss->ply % 2 == 0 && alpha > certaintyAlpha )
+    {
+        ss->certainty += ( bestValue < ss->staticEval + 50 + certaintyDepthMultiplier * depth );
 
-
+    }
     return bestValue;
   }
 
