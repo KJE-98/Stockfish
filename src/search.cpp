@@ -1384,9 +1384,9 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
-    if ( bestMove && !(ss->inCheck) && !rootNode && depth > thisThread->rootDepth / 2 && ss->ply % 2 == 0 && alpha > certaintyAlpha )
+    if ( bestMove && !(ss->inCheck) && !rootNode && depth > 3 * thisThread->rootDepth / 5 - 2 && ss->ply % 2 == 0 && alpha > certaintyAlpha )
     {
-        ss->certainty += ( bestValue < ss->staticEval + 70 + certaintyDepthMultiplier * depth );
+        ss->certainty += ( bestValue < ss->staticEval + 60 + certaintyDepthMultiplier * depth );
 
     }
     return bestValue;
