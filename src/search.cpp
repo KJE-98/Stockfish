@@ -310,6 +310,7 @@ void Thread::search() {
   optimism[~us] = -optimism[us];
 
   int searchAgainCounter = 0;
+  bool triSearching = false;
 
   // Iterative deepening loop until requested to stop or the target depth is reached
   while (   ++rootDepth < MAX_PLY
@@ -331,7 +332,6 @@ void Thread::search() {
       if (!Threads.increaseDepth)
          searchAgainCounter++;
 
-      bool triSearching = rootDepth > 12;
 
       // MultiPV loop. We perform a full root search for each PV line
       for (pvIdx = 0; pvIdx < multiPV && !Threads.stop; ++pvIdx)
@@ -493,6 +493,9 @@ void Thread::search() {
           // yielding correct scores and sufficiently fast moves.
           if (rootMoves.size() == 1)
               totalTime = std::min(500.0, totalTime);
+        
+          if (Time.elapsed() > Time.optimum() * .5)
+              triSearching = true;
 
           // Stop the search if we have exceeded the totalTime
           if (Time.elapsed() > totalTime)
