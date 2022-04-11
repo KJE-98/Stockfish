@@ -377,9 +377,9 @@ void Thread::search() {
                   triAlpha = -VALUE_INFINITE;
               if (triBeta > VALUE_INFINITE)
                   triBeta = VALUE_INFINITE;
-              if ( adjustedDepth < 14)
+              if ( adjustedDepth < 15)
                   bestValue = Stockfish::search<Root>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
-              if ( adjustedDepth > 13)
+              if ( adjustedDepth > 14)
               {
                   bestValue = Stockfish::search<triRoot>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
               }
@@ -483,8 +483,8 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
-
-          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
+          double usingTri = completedDepth > 14 ? 1.3 : 1;
+          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * usingTri;
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
