@@ -494,7 +494,7 @@ void Thread::search() {
           if (rootMoves.size() == 1)
               totalTime = std::min(500.0, totalTime);
         
-          if (Time.elapsed() > Time.optimum() * .5)
+          if (Time.elapsed() > Time.optimum() * .3)
               triSearching = true;
 
           // Stop the search if we have exceeded the totalTime
