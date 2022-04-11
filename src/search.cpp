@@ -59,7 +59,7 @@ using namespace Search;
 namespace {
 
   // Different node types, used as a template parameter
-  enum NodeType { NonPV, PV, Root };
+  enum NodeType { NonPV, PV, Root , tri, triRoot };
 
   // Futility margin
   Value futility_margin(Depth d, bool improving) {
@@ -370,15 +370,18 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              sync_cout << "alpha, beta: " << alpha << ", " << beta  << sync_endl;
-              Value alphaTest = Stockfish::search<Root>(rootPos, ss, alpha, alpha + 1, adjustedDepth, false);
-              bestValue = alphaTest;
-              if (alphaTest > alpha){
-                  //Value betaTest = Stockfish::search<Root>(rootPos, ss, beta - 1, beta, adjustedDepth, false);
-                  //bestValue = betaTest;
-                  if (true){
-                       bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
-                  }
+              //sync_cout << "alpha, beta: " << alpha << ", " << beta  << sync_endl;
+              Value triAlpha = alpha;
+              Value triBeta = beta;
+              if (triAlpha < -VALUE_INFINITE)
+                  triAlpha = -VALUE_INFINITE;
+              if (triBeta > VALUE_INFINITE)
+                  triBeta = VALUE_INFINITE;
+              if ( adjustedDepth < 13)
+                  bestValue = Stockfish::search<Root>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
+              if ( adjustedDepth > 12)
+              {
+                  bestValue = Stockfish::search<triRoot>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
               }
               
 
@@ -530,8 +533,10 @@ namespace {
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
 
     constexpr bool PvNode = nodeType != NonPV;
-    constexpr bool rootNode = nodeType == Root;
+    constexpr bool rootNode = nodeType == Root || nodeType == triRoot;
+    constexpr bool trident = nodeType == tri || nodeType == triRoot;
     const Depth maxNextDepth = rootNode ? depth : depth + 1;
+
 
     // Check if we have an upcoming move which draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
@@ -1241,8 +1246,17 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
-          value = -search<PV>(pos, ss+1, -beta, -alpha,
+          if (trident)
+          {
+              value = -search<tri>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false);
+          }
+          else 
+          {
+              value = -search<PV>(pos, ss+1, -beta, -alpha,
+                              std::min(maxNextDepth, newDepth), false);
+          }
+          
       }
 
       // Step 19. Undo move
@@ -1305,6 +1319,11 @@ moves_loop: // When in check, search starts here
               {
                   alpha = value;
                   bestMoveCount++;
+
+                  if (trident)
+                  {
+                      alpha = beta - 1;
+                  }
               }
               else
               {
