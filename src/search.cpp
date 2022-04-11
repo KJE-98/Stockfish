@@ -331,6 +331,8 @@ void Thread::search() {
       if (!Threads.increaseDepth)
          searchAgainCounter++;
 
+      bool triSearching = rootDepth > 14;
+
       // MultiPV loop. We perform a full root search for each PV line
       for (pvIdx = 0; pvIdx < multiPV && !Threads.stop; ++pvIdx)
       {
@@ -367,21 +369,23 @@ void Thread::search() {
           // high/low, re-search with a bigger window until we don't fail
           // high/low anymore.
           int failedHighCnt = 0;
+
+          if (triSearching)
+          {
+              alpha = (4 * alpha + beta) / 5;
+              beta = (alpha + 4 * beta) / 5;
+          }
+
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              //sync_cout << "alpha, beta: " << alpha << ", " << beta  << sync_endl;
-              Value triAlpha = alpha;
-              Value triBeta = beta;
-              if (triAlpha < -VALUE_INFINITE)
-                  triAlpha = -VALUE_INFINITE;
-              if (triBeta > VALUE_INFINITE)
-                  triBeta = VALUE_INFINITE;
-              if ( adjustedDepth < 15)
-                  bestValue = Stockfish::search<Root>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
-              if ( adjustedDepth > 14)
+
+              
+              if ( !triSearching )
+                  bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              if ( triSearching )
               {
-                  bestValue = Stockfish::search<triRoot>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
+                  bestValue = Stockfish::search<triRoot>(rootPos, ss, alpha, beta, adjustedDepth, false);
               }
               
 
@@ -483,7 +487,7 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
-          double usingTri = completedDepth > 14 ? 1.3 : 1;
+          double usingTri = triSearching ? 1.3 : 1;
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * usingTri;
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
