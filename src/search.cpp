@@ -377,9 +377,9 @@ void Thread::search() {
                   triAlpha = -VALUE_INFINITE;
               if (triBeta > VALUE_INFINITE)
                   triBeta = VALUE_INFINITE;
-              if ( adjustedDepth < 13)
+              if ( adjustedDepth < 14)
                   bestValue = Stockfish::search<Root>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
-              if ( adjustedDepth > 12)
+              if ( adjustedDepth > 13)
               {
                   bestValue = Stockfish::search<triRoot>(rootPos, ss, triAlpha, triBeta, adjustedDepth, false);
               }
