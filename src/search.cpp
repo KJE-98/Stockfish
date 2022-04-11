@@ -331,7 +331,7 @@ void Thread::search() {
       if (!Threads.increaseDepth)
          searchAgainCounter++;
 
-      bool triSearching = rootDepth > 14;
+      bool triSearching = rootDepth > 12;
 
       // MultiPV loop. We perform a full root search for each PV line
       for (pvIdx = 0; pvIdx < multiPV && !Threads.stop; ++pvIdx)
@@ -487,7 +487,7 @@ void Thread::search() {
                                               * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
-          double usingTri = triSearching ? 1.3 : 1;
+          double usingTri = triSearching ? 1.2 : 1;
           double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * usingTri;
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
