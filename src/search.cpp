@@ -1294,15 +1294,19 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
-                  alpha = value;
-                  bestMoveCount++;
+                   if (   beta < VALUE_INFINITE
+                       && depth > 3
+                       && (std::abs(value) < 100 || std::abs(value) > 440))
+                   {
+                      alpha = (5 * value + beta - 1) / 6 + 10;
+                   }
+                   
+                   else
+                      alpha = value + 10 * (depth > 3);
 
-                  if (depth > 3)
-                  {
-                      alpha = value + 10 + std::abs(value) / 10 ;
-                      if (alpha >= beta)
+                    if (alpha > beta - 1)
                           alpha = beta - 1;
-                  }
+                    bestMoveCount++;
               }
               else
               {
