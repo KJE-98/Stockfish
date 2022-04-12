@@ -1299,7 +1299,7 @@ moves_loop: // When in check, search starts here
                   if (depth > 2)
                   {
                       alpha = value + 20 + std::abs(value) / 5;
-                      if (alpha > beta)
+                      if (alpha >= beta)
                           alpha = beta - 1;
                   }
               }
