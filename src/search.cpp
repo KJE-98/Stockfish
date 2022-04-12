@@ -1584,7 +1584,9 @@ moves_loop: // When in check, search starts here
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha here!
-                  alpha = value;
+                  alpha = value + 400 + std::abs(value) / 3;
+                  if (alpha > beta)
+                      alpha = beta - 1;
               else
                   break; // Fail high
           }
