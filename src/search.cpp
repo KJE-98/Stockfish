@@ -1296,10 +1296,10 @@ moves_loop: // When in check, search starts here
                   alpha = value;
                   bestMoveCount++;
 
-                  if (depth > 2)
+                  if (depth > 3)
                   {
-                      alpha = value + 20 + std::abs(value) / 6 ;
-                      if (alpha > beta)
+                      alpha = value + 10 + std::abs(value) / 10 ;
+                      if (alpha >= beta)
                           alpha = beta - 1;
                   }
               }
