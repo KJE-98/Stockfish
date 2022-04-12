@@ -1298,7 +1298,7 @@ moves_loop: // When in check, search starts here
 
                   if (depth > 2)
                   {
-                      alpha = value + 20 + std::abs(value) / 5;
+                      alpha = value + 20 + std::abs(value) / 6 ;
                       if (alpha > beta)
                           alpha = beta - 1;
                   }
@@ -1590,8 +1590,11 @@ moves_loop: // When in check, search starts here
               if (PvNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
-              if (PvNode && value < beta) // Update alpha here!
+              if (PvNode && value < beta)
+              {
                   alpha = value;
+              } // Update alpha here!
+                  
               else
                   break; // Fail high
           }
