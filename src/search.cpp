@@ -1295,17 +1295,13 @@ moves_loop: // When in check, search starts here
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
                    if (   beta < VALUE_INFINITE
-                       && depth > 3
-                       && (std::abs(value) < 100 || std::abs(value) > 440))
+                       && depth > 1 
+                       && thisThread->rootDepth < 17)
                    {
-                      alpha = (5 * value + beta - 1) / 6 + 10;
+                      alpha = (3 * value + beta - 1) / 4;
                    }
-                   
                    else
-                      alpha = value + 10 * (depth > 3);
-
-                    if (alpha > beta - 1)
-                          alpha = beta - 1;
+                      alpha = value;
                     bestMoveCount++;
               }
               else
