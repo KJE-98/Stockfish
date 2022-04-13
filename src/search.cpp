@@ -1294,15 +1294,17 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
-                   if (   beta < VALUE_INFINITE
-                       && depth > 1 
-                       && thisThread->rootDepth < 17)
-                   {
+                  if (   beta < VALUE_INFINITE
+                      && depth > 1 
+                      && thisThread->rootDepth < 17)
+                  {
                       alpha = (3 * value + beta - 1) / 4;
-                   }
-                   else
+                  }
+                  else
+                  {
                       alpha = value;
-                    bestMoveCount++;
+                  }
+                  bestMoveCount++;
               }
               else
               {
@@ -1591,11 +1593,8 @@ moves_loop: // When in check, search starts here
               if (PvNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
-              if (PvNode && value < beta)
-              {
+              if (PvNode && value < beta) // Update alpha here!
                   alpha = value;
-              } // Update alpha here!
-                  
               else
                   break; // Fail high
           }
