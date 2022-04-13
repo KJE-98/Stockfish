@@ -1300,8 +1300,10 @@ moves_loop: // When in check, search starts here
                       alpha = (3 * value + beta - 1) / 4;
                    }
                    else
-                      alpha = value;
-                    bestMoveCount++;
+                   {
+                       alpha = value;
+                   }
+                   bestMoveCount++;
               }
               else
               {
@@ -1590,10 +1592,8 @@ moves_loop: // When in check, search starts here
               if (PvNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
-              if (PvNode && value < beta)
-              {
+              if (PvNode && value < beta) // Update alpha here!
                   alpha = value;
-              } // Update alpha here!
                   
               else
                   break; // Fail high
