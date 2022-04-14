@@ -1173,7 +1173,7 @@ moves_loop: // When in check, search starts here
               r--;
 
           // Increase reduction if ttMove is currently bestMove
-          if (bestMove && bestMove != ttMove)
+          if (bestMove && ttMove && bestMove != ttMove)
               r--;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
