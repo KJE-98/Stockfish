@@ -137,9 +137,10 @@ void MovePicker::score() {
   for (auto& m : *this)
     {
       int ttBonus = 0;
-      TTEntry* ttEntry = TT.first_entry(pos.key_after(m));
+      TTEntry* ttEntry = nullptr;
+      ttEntry = TT.first_entry(pos.key_after(m));
       if (ttEntry->key() != 0)
-          ttBonus = 750 * ttEntry->depth();
+          ttBonus = 2500 * ttEntry->depth();
 
       if constexpr (Type == CAPTURES)
           m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
