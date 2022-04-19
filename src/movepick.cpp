@@ -137,12 +137,13 @@ void MovePicker::score() {
   for (auto& m : *this)
     {
       int ttBonus = 0;
+      bool ttHit = false;
       TTEntry* ttEntry = nullptr;
-      if (depth > 15)
+      if (depth > 10 && ttMove != MOVE_NONE)
       {
-          ttEntry = TT.first_entry(pos.key_after(m));
-          if ( (ttEntry->key() != 0) )
-              ttBonus = 100000 * ttEntry->depth() / depth;
+          ttEntry = TT.probe(pos.key_after(m), ttHit);
+          if ( ttHit && ttEntry->depth() - depth * 2 / 3 - 2 > 0)
+              ttBonus = 20000 * (ttEntry->depth() - depth * 2 / 3 - 2);
       }
 
       if constexpr (Type == CAPTURES)
@@ -150,7 +151,7 @@ void MovePicker::score() {
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))] +  ttBonus;
 
       else if constexpr (Type == QUIETS)
-          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
+          m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)] + ttBonus
                    + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                    +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
                    +     (*continuationHistory[3])[pos.moved_piece(m)][to_sq(m)]
@@ -160,7 +161,7 @@ void MovePicker::score() {
                           : type_of(pos.moved_piece(m)) == ROOK  && !(to_sq(m) & threatenedByMinor) ? 25000
                           :                                         !(to_sq(m) & threatenedByPawn)  ? 15000
                           :                                                                           0)
-                          :                                                                           0) + ttBonus;
+                          :                                                                           0);
 
       else // Type == EVASIONS
       {
