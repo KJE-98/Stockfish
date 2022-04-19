@@ -21,6 +21,7 @@
 #include "bitboard.h"
 #include "movepick.h"
 #include "tt.h"
+#include "search.h"
 
 namespace Stockfish {
 
@@ -62,11 +63,10 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Move cm,
-                                                             const Move* killers)
+                                                             const Move* killers, const int nt)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{
-                 {killers[0], 0}, {killers[1], 0}, {cm, 0}
-                 }, depth(d)
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d),
+             nodeType(nt)
 {
   assert(d > 0);
 
@@ -139,11 +139,11 @@ void MovePicker::score() {
       int ttBonus = 0;
       bool ttHit = false;
       TTEntry* ttEntry = nullptr;
-      if (depth > 10 && ttMove != MOVE_NONE)
+      if ( nodeType == 1 )
       {
           ttEntry = TT.probe(pos.key_after(m), ttHit);
-          if ( ttHit && ttEntry->depth() - depth * 2 / 3 - 2 > 0)
-              ttBonus = 20000 * (ttEntry->depth() - depth * 2 / 3 - 2);
+          if ( ttHit && ttEntry->is_pv() )
+              ttBonus = 50000 * ttEntry->depth() ;
       }
 
       if constexpr (Type == CAPTURES)
