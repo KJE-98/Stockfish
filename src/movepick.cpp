@@ -138,11 +138,11 @@ void MovePicker::score() {
     {
       int ttBonus = 0;
       TTEntry* ttEntry = nullptr;
-      if (depth > 10)
+      if (depth > 15)
       {
           ttEntry = TT.first_entry(pos.key_after(m));
           if ( (ttEntry->key() != 0) )
-              ttBonus = 50000 * ttEntry->depth() / depth;
+              ttBonus = 100000 * ttEntry->depth() / depth;
       }
 
       if constexpr (Type == CAPTURES)
