@@ -128,7 +128,6 @@ public:
                                            Square);
   MovePicker(const Position&, Move, Value, Depth, const CapturePieceToHistory*);
   Move next_move(bool skipQuiets = false);
-  ExtMove moves[MAX_MOVES];
 
 private:
   template<PickType T, typename Pred> Move select(Pred);
@@ -146,6 +145,7 @@ private:
   Square recaptureSquare;
   Value threshold;
   Depth depth;
+  ExtMove moves[MAX_MOVES];
 };
 
 } // namespace Stockfish

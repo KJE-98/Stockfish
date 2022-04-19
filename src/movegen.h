@@ -22,7 +22,6 @@
 #include <algorithm>
 
 #include "types.h"
-#include "tt.h"
 
 namespace Stockfish {
 
@@ -40,8 +39,6 @@ enum GenType {
 struct ExtMove {
   Move move;
   int value;
-  TTEntry* ttEntry;
-  bool ttHit;
 
   operator Move() const { return move; }
   void operator=(Move m) { move = m; }
