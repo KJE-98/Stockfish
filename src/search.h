@@ -54,6 +54,8 @@ struct Stack {
   bool ttPv;
   bool ttHit;
   int doubleExtensions;
+  TTEntry* nextTTEntry;
+  bool nextTTHit;
 };
 
 

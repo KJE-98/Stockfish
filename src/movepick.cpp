@@ -20,6 +20,7 @@
 
 #include "bitboard.h"
 #include "movepick.h"
+#include "tt.h"
 
 namespace Stockfish {
 
@@ -63,7 +64,9 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              Move cm,
                                                              const Move* killers)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
+             ttMove(ttm), refutations{
+                 {killers[0], 0, nullptr, false}, {killers[1], 0, nullptr, false}, {cm, 0, nullptr, false}
+                 }, depth(d)
 {
   assert(d > 0);
 
@@ -132,9 +135,15 @@ void MovePicker::score() {
   }
 
   for (auto& m : *this)
+    {
+      int ttBonus = 0;
+      TTEntry* ttEntry = TT.first_entry(pos.key_after(m));
+      if (ttEntry->key() != 0)
+          ttBonus = 750 * ttEntry->depth();
+
       if constexpr (Type == CAPTURES)
           m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
-                   +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
+                   +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))] +  ttBonus;
 
       else if constexpr (Type == QUIETS)
           m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
@@ -147,18 +156,19 @@ void MovePicker::score() {
                           : type_of(pos.moved_piece(m)) == ROOK  && !(to_sq(m) & threatenedByMinor) ? 25000
                           :                                         !(to_sq(m) & threatenedByPawn)  ? 15000
                           :                                                                           0)
-                          :                                                                           0);
+                          :                                                                           0) + ttBonus;
 
       else // Type == EVASIONS
       {
           if (pos.capture(m))
               m.value =  PieceValue[MG][pos.piece_on(to_sq(m))]
-                       - Value(type_of(pos.moved_piece(m)));
+                       - Value(type_of(pos.moved_piece(m))) + ttBonus;
           else
               m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                        + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
-                       - (1 << 28);
+                       - (1 << 28) + ttBonus;
       }
+    }
 }
 
 /// MovePicker::select() returns the next move satisfying a predicate function.

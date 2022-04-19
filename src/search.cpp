@@ -568,6 +568,9 @@ namespace {
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
 
+    ss->nextTTEntry    = nullptr;
+    ss->nextTTHit      = false;
+
     // Check for the available remaining time
     if (thisThread == Threads.main())
         static_cast<MainThread*>(thisThread)->check_time();
@@ -966,6 +969,19 @@ moves_loop: // When in check, search starts here
 
       if (move == excludedMove)
           continue;
+
+
+      ss->nextTTEntry = nullptr;
+      ss->nextTTHit = false;
+
+      for (auto& extMove : mp.moves)
+      {
+          if (extMove.move == move){
+              ss->nextTTEntry = extMove.ttEntry;
+              ss->nextTTHit = extMove.ttHit;
+              break;
+          }
+      }
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
