@@ -1177,7 +1177,7 @@ moves_loop: // When in check, search starts here
           if (PvNode)
               r -= 15 / ( 3 + depth );
 
-          // Increase reduction if PvNode and moveNumber and ply are both high
+          // Increase reduction if PvNode and moveNumber and ply are both high.
           if (PvNode && moveCount > 4 && ss->ply > 14)
               r += 4;
 
