@@ -562,11 +562,13 @@ namespace {
     Thread* thisThread = pos.this_thread();
     thisThread->depth  = depth;
     ss->inCheck        = pos.checkers();
+    ss->ttEntry        = nullptr;
     priorCapture       = pos.captured_piece();
     Color us           = pos.side_to_move();
     moveCount          = bestMoveCount = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    TTEntry* bestMoveTT = nullptr;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -621,7 +623,18 @@ namespace {
     // position key in case of an excluded move.
     excludedMove = ss->excludedMove;
     posKey = excludedMove == MOVE_NONE ? pos.key() : pos.key() ^ make_key(excludedMove);
-    tte = TT.probe(posKey, ss->ttHit);
+    if ( (ss-1)->ttEntry->next()->key() == (uint16_t)posKey )
+    {
+        tte = (ss-1)->ttEntry->next();
+        ss->ttHit = true;
+        ss->ttEntry = tte;
+    }
+    else
+    {
+        tte = TT.probe(posKey, ss->ttHit);
+        if (ss->ttHit)
+            ss->ttEntry = tte;
+    }
     ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
             : ss->ttHit    ? tte->move() : MOVE_NONE;
@@ -701,7 +714,7 @@ namespace {
                 {
                     tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, b,
                               std::min(MAX_PLY - 1, depth + 6),
-                              MOVE_NONE, VALUE_NONE);
+                              MOVE_NONE, VALUE_NONE, nullptr);
 
                     return value;
                 }
@@ -751,7 +764,7 @@ namespace {
 
         // Save static evaluation into transposition table
         if (!excludedMove)
-            tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval);
+            tte->save(posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, MOVE_NONE, eval, nullptr);
     }
 
     // Use static evaluation difference to improve quiet move ordering (~3 Elo)
@@ -901,7 +914,7 @@ namespace {
                        && ttValue != VALUE_NONE))
                         tte->save(posKey, value_to_tt(value, ss->ply), ttPv,
                             BOUND_LOWER,
-                            depth - 3, move, ss->staticEval);
+                            depth - 3, move, ss->staticEval, nullptr);
                     return value;
                 }
             }
@@ -1292,6 +1305,7 @@ moves_loop: // When in check, search starts here
           if (value > alpha)
           {
               bestMove = move;
+              bestMoveTT = (ss+1)->ttEntry;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
@@ -1371,7 +1385,7 @@ moves_loop: // When in check, search starts here
         tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
                   bestValue >= beta ? BOUND_LOWER :
                   PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
-                  depth, bestMove, ss->staticEval);
+                  depth, bestMove, ss->staticEval, bestMoveTT);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
@@ -1472,7 +1486,7 @@ moves_loop: // When in check, search starts here
             // Save gathered info in transposition table
             if (!ss->ttHit)
                 tte->save(posKey, value_to_tt(bestValue, ss->ply), false, BOUND_LOWER,
-                          DEPTH_NONE, MOVE_NONE, ss->staticEval);
+                          DEPTH_NONE, MOVE_NONE, ss->staticEval, nullptr);
 
             return bestValue;
         }
@@ -1608,7 +1622,7 @@ moves_loop: // When in check, search starts here
     // Save gathered info in transposition table
     tte->save(posKey, value_to_tt(bestValue, ss->ply), pvHit,
               bestValue >= beta ? BOUND_LOWER : BOUND_UPPER,
-              ttDepth, bestMove, ss->staticEval);
+              ttDepth, bestMove, ss->staticEval, nullptr);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 

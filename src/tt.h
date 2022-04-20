@@ -37,13 +37,15 @@ namespace Stockfish {
 
 struct TTEntry {
 
+  uint16_t key() const { return key16; }
+  TTEntry* next() const { return nextTTEntry; }
   Move  move()  const { return (Move )move16; }
   Value value() const { return (Value)value16; }
   Value eval()  const { return (Value)eval16; }
   Depth depth() const { return (Depth)depth8 + DEPTH_OFFSET; }
   bool is_pv()  const { return (bool)(genBound8 & 0x4); }
   Bound bound() const { return (Bound)(genBound8 & 0x3); }
-  void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev);
+  void save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, TTEntry* n);
 
 private:
   friend class TranspositionTable;
@@ -54,6 +56,7 @@ private:
   uint16_t move16;
   int16_t  value16;
   int16_t  eval16;
+  TTEntry* nextTTEntry;
 };
 
 
@@ -72,7 +75,7 @@ class TranspositionTable {
     char padding[2]; // Pad to 32 bytes
   };
 
-  static_assert(sizeof(Cluster) == 32, "Unexpected Cluster size");
+  //static_assert(sizeof(Cluster) == 32, "Unexpected Cluster size");
 
   // Constants used to refresh the hash table periodically
   static constexpr unsigned GENERATION_BITS  = 3;                                // nb of bits reserved for other things
