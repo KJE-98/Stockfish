@@ -1148,7 +1148,7 @@ moves_loop: // When in check, search starts here
           // Decrease reduction at some PvNodes (~2 Elo)
           if (   PvNode
               && bestMoveCount <= 3)
-              r--;
+              r --;
 
           // Decrease reduction if position is or has been on the PV
           // and node is not likely to fail low. (~3 Elo)
@@ -1176,6 +1176,10 @@ moves_loop: // When in check, search starts here
           // Increase depth based reduction if PvNode
           if (PvNode)
               r -= 15 / ( 3 + depth );
+
+          // Increase reduction if PvNode and moveNumber and ply are both high
+          if (PvNode && moveCount > 3 && ss->ply > 14)
+              r += 2;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
