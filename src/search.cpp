@@ -1298,11 +1298,11 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
-                  if (ss->ply > 10 && depth > 4)
+                  if (ss->ply > 0 && depth > 4)
                   {
-                      int denom = std::clamp( 10 / (ss->ply -10) + 10 / (depth - 4), 2, 100);
+                      int denom = std::clamp( 10 / (ss->ply) + 10 / (depth - 4), 2, 100);
                       alpha = std::min(
-                          (value * (denom - 1) + beta - 1) / denom, value + 100
+                          (value * (denom - 1) + beta - 1) / denom, value + 40
                           );
                   }
                   else
