@@ -1178,8 +1178,8 @@ moves_loop: // When in check, search starts here
               r -= 15 / ( 3 + depth );
 
           // Increase reduction if NonPV and moveNumber and ply are both high.
-          if (!PvNode && moveCount > 3 && ss->ply > 13)
-              r += 3;
+          if (!PvNode && moveCount > 3 && ss->ply > 15)
+              r += depth / 4;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
