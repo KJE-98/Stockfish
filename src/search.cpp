@@ -536,7 +536,7 @@ namespace {
     }
 
     // Dive into quiescence search when the depth reaches zero
-    if (depth <= 0)
+    if (depth <= -3)
         return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
@@ -638,7 +638,7 @@ namespace {
                             : (tte->bound() & BOUND_UPPER)))
     {
         // If ttMove is quiet, update move sorting heuristics on TT hit (~1 Elo)
-        if (ttMove)
+        if (ttMove && depth > 0)
         {
             if (ttValue >= beta)
             {
@@ -696,8 +696,10 @@ namespace {
                 Bound b =  wdl < -drawScore ? BOUND_UPPER
                          : wdl >  drawScore ? BOUND_LOWER : BOUND_EXACT;
 
-                if (    b == BOUND_EXACT
-                    || (b == BOUND_LOWER ? value >= beta : value <= alpha))
+                if (
+                        depth > 0
+                    &&  ( b == BOUND_EXACT
+                    ||   (b == BOUND_LOWER ? value >= beta : value <= alpha) ) )
                 {
                     tte->save(posKey, value_to_tt(value, ss->ply), ss->ttPv, b,
                               std::min(MAX_PLY - 1, depth + 6),
@@ -893,7 +895,7 @@ namespace {
 
                 pos.undo_move(move);
 
-                if (value >= probCutBeta)
+                if (value >= probCutBeta && depth > 0)
                 {
                     // if transposition table doesn't have equal or more deep info write probCut data into it
                     if ( !(ss->ttHit
@@ -935,6 +937,9 @@ moves_loop: // When in check, search starts here
        )
         return probCutBeta;
 
+
+    if (depth <= 0)
+        return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
                                           nullptr                   , (ss-4)->continuationHistory,
