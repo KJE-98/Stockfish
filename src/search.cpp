@@ -59,7 +59,7 @@ using namespace Search;
 namespace {
 
   // Different node types, used as a template parameter
-  enum NodeType { NonPV, PV, Root };
+  enum NodeType { NonPV, PV, Root, Tri };
 
   // Futility margin
   Value futility_margin(Depth d, bool improving) {
@@ -519,8 +519,9 @@ namespace {
   template <NodeType nodeType>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
 
-    constexpr bool PvNode = nodeType != NonPV;
+    constexpr bool PvNode = nodeType != NonPV && nodeType != Tri;
     constexpr bool rootNode = nodeType == Root;
+    constexpr bool triNode = nodeType == Tri;
     const Depth maxNextDepth = rootNode ? depth : depth + 1;
 
     // Check if we have an upcoming move which draws by repetition, or
@@ -850,7 +851,7 @@ namespace {
     // Step 10. ProbCut (~4 Elo)
     // If we have a good enough capture and a reduced search returns a value
     // much above beta, we can (almost) safely prune the previous move.
-    if (   !PvNode
+    if (   !PvNode && !triNode
         &&  depth > 4
         &&  abs(beta) < VALUE_TB_WIN_IN_MAX_PLY
         // if value from transposition table is lower than probCutBeta, don't attempt probCut
@@ -950,6 +951,7 @@ moves_loop: // When in check, search starts here
 
     value = bestValue;
     moveCountPruning = false;
+    bool continueTri = true;
 
     // Indicate PvNodes that will probably fail low if the node was searched
     // at a depth equal or greater than the current depth, and the result of this search was a fail low.
@@ -1205,15 +1207,17 @@ moves_loop: // When in check, search starts here
       }
       else
       {
-          doFullDepthSearch = !PvNode || moveCount > 1;
+          doFullDepthSearch = triNode || !PvNode || moveCount > 1;
           didLMR = false;
       }
 
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
-
+          if (PvNode || (triNode && continueTri))
+              value = -search<Tri>(pos, ss+1, -beta, -alpha, newDepth + doDeeperSearch, !cutNode);
+          else
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
           // If the move passed LMR update its stats
           if (didLMR)
           {
@@ -1297,6 +1301,11 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
                   alpha = value;
+              else if (triNode && value < beta)
+              {
+                  alpha = beta - 1;
+                  continueTri = false;
+              }
               else
               {
                   assert(value >= beta); // Fail high
