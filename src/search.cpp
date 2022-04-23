@@ -1004,7 +1004,8 @@ moves_loop: // When in check, search starts here
           && bestValue > VALUE_TB_LOSS_IN_MAX_PLY)
       {
           // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold (~7 Elo)
-          moveCountPruning = moveCount >= futility_move_count(improving, depth);
+          if (thisThread->rootDepth >= 6 && ss->ply >= 6)
+              moveCountPruning = moveCount >= futility_move_count(improving, depth);
 
           // Reduced depth of the next LMR search
           int lmrDepth = std::max(newDepth - reduction(improving, depth, moveCount, delta, thisThread->rootDelta), 0);
@@ -1210,7 +1211,7 @@ moves_loop: // When in check, search starts here
       }
 
       // Step 18. Full depth search when LMR is skipped or fails high
-      if (doFullDepthSearch)
+      if (doFullDepthSearch || (thisThread->rootDepth < 6 && ss->ply < 6))
       {
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
 
