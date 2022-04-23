@@ -538,7 +538,7 @@ namespace {
 
     // Dive into quiescence search when the depth reaches zero
     if (depth <= 0)
-        return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+        return qsearch<PvNode ? PV : (triNode ? Tri : NonPV)>(pos, ss, alpha, beta);
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -1391,6 +1391,7 @@ moves_loop: // When in check, search starts here
 
     static_assert(nodeType != Root);
     constexpr bool PvNode = nodeType == PV;
+    constexpr bool triNode = nodeType == Tri;
 
     assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -1438,7 +1439,7 @@ moves_loop: // When in check, search starts here
     ttMove = ss->ttHit ? tte->move() : MOVE_NONE;
     pvHit = ss->ttHit && tte->is_pv();
 
-    if (  !PvNode
+    if (   !PvNode
         && ss->ttHit
         && tte->depth() >= ttDepth
         && ttValue != VALUE_NONE // Only in case of TT access race
@@ -1576,7 +1577,7 @@ moves_loop: // When in check, search starts here
 
       // Make and search the move
       pos.do_move(move, st, givesCheck);
-      value = -qsearch<nodeType>(pos, ss+1, -beta, -alpha, depth - 1);
+      value = -qsearch<PvNode ? PV : (triNode ? Tri : NonPV)>(pos, ss+1, -beta, -alpha, depth - 1);
       pos.undo_move(move);
 
       assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
@@ -1595,6 +1596,8 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha here!
                   alpha = value;
+              else if (triNode && value < beta)
+                  alpha = beta - 1;
               else
                   break; // Fail high
           }
