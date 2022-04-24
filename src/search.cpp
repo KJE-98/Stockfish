@@ -113,6 +113,9 @@ namespace {
   template <NodeType nodeType>
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = 0);
 
+  template <NodeType nodeType>
+  Value csearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, int failHighThreshold);
+
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply, int r50c);
   void update_pv(Move* pv, Move move, Move* childPv);
@@ -552,7 +555,7 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
+    Value bestValue, value, ttValue, eval, maxValue, probCutBeta, cvalue;
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
@@ -567,6 +570,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    cvalue             = -VALUE_INFINITE;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -935,6 +939,16 @@ moves_loop: // When in check, search starts here
        )
         return probCutBeta;
 
+    if (
+          depth > 10
+          && beta - alpha > 50
+       )
+       {
+          cvalue = csearch<PV>(pos, ss, alpha - 1, alpha, 2, 4);
+          cvalue = std::min(cvalue + 50, beta - 1);
+          if (cvalue < alpha)
+              cvalue = -VALUE_INFINITE;
+       }
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
                                           nullptr                   , (ss-4)->continuationHistory,
@@ -1296,7 +1310,7 @@ moves_loop: // When in check, search starts here
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
-                  alpha = value;
+                  alpha = std::max(value, cvalue);
               else
               {
                   assert(value >= beta); // Fail high
@@ -1608,6 +1622,145 @@ moves_loop: // When in check, search starts here
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
+    return bestValue;
+  }
+
+  // csearch()
+  template <NodeType nodeType>
+  Value csearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, int failHighThreshold) {
+
+    if (depth <= 0)
+          return qsearch<NonPV>(pos, ss, alpha, beta);
+
+    static_assert(nodeType != Root);
+    constexpr bool PvNode = nodeType == PV;
+
+    assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
+    assert(PvNode || (alpha == beta - 1));
+    assert(depth > 0);
+
+    StateInfo st;
+    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+
+    TTEntry* tte;
+    Key posKey;
+    Move ttMove, move, bestMove;
+    Value bestValue, value, ttValue;
+    bool pvHit, givesCheck, capture;
+    int moveCount;
+    int movesAboveBeta = 0;
+
+    Thread* thisThread = pos.this_thread();
+    bestMove = MOVE_NONE;
+    ss->inCheck = pos.checkers();
+    moveCount = 0;
+
+    // Check for an immediate draw or maximum ply reached
+    if (   pos.is_draw(ss->ply)
+        || ss->ply >= MAX_PLY)
+        return (ss->ply >= MAX_PLY && !ss->inCheck) ? evaluate(pos) : VALUE_DRAW;
+
+    assert(0 <= ss->ply && ss->ply < MAX_PLY);
+
+    // Transposition table lookup
+    posKey = pos.key();
+    tte = TT.probe(posKey, ss->ttHit);
+    ttValue = ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
+    ttMove = ss->ttHit ? tte->move() : MOVE_NONE;
+    pvHit = ss->ttHit && tte->is_pv();
+
+    if (  !PvNode
+        && ss->ttHit
+        && tte->depth() >= 10
+        && ttValue != VALUE_NONE // Only in case of TT access race
+        && (ttValue >= beta ? (tte->bound() & BOUND_LOWER)
+                            : (tte->bound() & BOUND_UPPER)))
+        return ttValue;
+
+
+    const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
+                                          nullptr                   , (ss-4)->continuationHistory,
+                                          nullptr                   , (ss-6)->continuationHistory };
+
+    // Initialize a MovePicker object for the current position, and prepare
+    // to search the moves. Because the depth is <= 0 here, only captures,
+    // queen promotions, and other checks (only if depth >= DEPTH_QS_CHECKS)
+    // will be generated.
+    Square prevSq = to_sq((ss-1)->currentMove);
+    Move countermove = thisThread->counterMoves[pos.piece_on(prevSq)][prevSq];
+
+    MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
+                                      &thisThread->captureHistory,
+                                      contHist,
+                                      countermove,
+                                      ss->killers);
+
+    // Loop through the moves until no moves remain or a beta cutoff occurs
+    while ((move = mp.next_move()) != MOVE_NONE)
+    {
+      assert(is_ok(move));
+
+      // Check for legality
+      if (!pos.legal(move))
+          continue;
+
+      givesCheck = pos.gives_check(move);
+      capture = pos.capture(move);
+
+      moveCount++;
+
+      if (moveCount > 5 + 5 * (failHighThreshold < 2) )
+          break;
+
+      // Speculative prefetch as early as possible
+      prefetch(TT.first_entry(pos.key_after(move)));
+
+      ss->currentMove = move;
+      ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
+                                                                [capture]
+                                                                [pos.moved_piece(move)]
+                                                                [to_sq(move)];
+
+      // Make and search the move
+      pos.do_move(move, st, givesCheck);
+      value = -csearch<nodeType>(pos, ss+1, -beta, -alpha, depth - 1, failHighThreshold > 0 ? 0 : 2);
+      pos.undo_move(move);
+
+      assert(value > -VALUE_INFINITE && value < VALUE_INFINITE);
+
+      // Check for a new best move
+      if (value > bestValue)
+      {
+          bestValue = value;
+
+          if (value > alpha)
+          {
+              bestMove = move;
+
+              if (PvNode) // Update alpha here!
+              {
+                  movesAboveBeta++;
+              }
+              if (movesAboveBeta > failHighThreshold)
+                  break; // Fail high
+          }
+       }
+    }
+
+    // All legal moves have been searched. A special case: if we're in check
+    // and no legal moves were found, it is checkmate.
+    if (ss->inCheck && bestValue == -VALUE_INFINITE)
+    {
+        assert(!MoveList<LEGAL>(pos).size());
+
+        return mated_in(ss->ply); // Plies to mate from the root
+    }
+
+    assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
+
+    // We didnt fail high enough to reach confidence
+    if (!(movesAboveBeta > failHighThreshold))
+        bestValue = alpha - 1;
     return bestValue;
   }
 
