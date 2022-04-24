@@ -993,10 +993,13 @@ moves_loop: // When in check, search starts here
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
 
+      Value delta = beta - alpha;
+
+
       // Calculate new depth for this move
       newDepth = depth - 1;
-
-      Value delta = beta - alpha;
+      if (bestMove && PvNode)
+          newDepth -= (delta < 30) + (delta < 20) + (delta < 15) + (delta < 10) + (delta < 5);
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
