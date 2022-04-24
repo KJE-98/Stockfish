@@ -552,11 +552,11 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
+    Value bestValue, value, ttValue, eval, maxValue, probCutBeta, initialAlpha;
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement, complexity;
+    int moveCount, captureCount, quietCount, improvement, complexity, bestMoveCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -567,6 +567,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    bestMoveCount      = 0;
+    initialAlpha       = alpha;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -994,7 +996,7 @@ moves_loop: // When in check, search starts here
       givesCheck = pos.gives_check(move);
 
       // Calculate new depth for this move
-      newDepth = depth - 1;
+      newDepth = depth - 1 - std::min(bestMoveCount, 1) * (depth > 2);
 
       Value delta = beta - alpha;
 
@@ -1296,7 +1298,11 @@ moves_loop: // When in check, search starts here
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
+              {
+                  if (beta < VALUE_KNOWN_WIN && initialAlpha > -VALUE_KNOWN_WIN)
+                      bestMoveCount++;
                   alpha = value;
+              }
               else
               {
                   assert(value >= beta); // Fail high
