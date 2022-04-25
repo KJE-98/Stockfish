@@ -998,8 +998,6 @@ moves_loop: // When in check, search starts here
 
       // Calculate new depth for this move
       newDepth = depth - 1;
-      if (bestMove && PvNode && depth > 2)
-          newDepth -= (delta < 30) + (delta < 15);
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
@@ -1178,6 +1176,10 @@ moves_loop: // When in check, search starts here
           // Decrease reduction for PvNodes based on depth
           if (PvNode)
               r -= 1 + 15 / ( 3 + depth );
+
+          // Increase reduction if ttMove has been the best move for a few iterations
+          if (ttMove && bestMove && ttMove == bestMove)
+              r += moveCount > 5;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
