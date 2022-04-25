@@ -998,8 +998,6 @@ moves_loop: // When in check, search starts here
 
       // Calculate new depth for this move
       newDepth = depth - 1;
-      if (bestMove && PvNode && depth > 2)
-          newDepth -= (delta < 30) + (delta < 15);
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
@@ -1058,6 +1056,8 @@ moves_loop: // When in check, search starts here
       // We take care to not overdo to avoid search getting stuck.
       if (ss->ply < thisThread->rootDepth * 2)
       {
+          if (bestMove && delta < 50)
+              extension = -1;
           // Singular extension search (~58 Elo). If all moves but one fail low on a
           // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
           // then that move is singular and should be extended. To verify this we do
