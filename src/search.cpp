@@ -998,8 +998,6 @@ moves_loop: // When in check, search starts here
 
       // Calculate new depth for this move
       newDepth = depth - 1;
-      if (bestMove && PvNode)
-          newDepth -= (delta < 40);
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
@@ -1119,6 +1117,10 @@ moves_loop: // When in check, search starts here
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
+
+          // Low delta extnsion
+          else if (PvNode && depth == 3 && delta > 20 && ss->doubleExtensions <= 0)
+              extension = 2;
       }
 
       // Add extension to new depth
