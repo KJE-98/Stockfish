@@ -1314,6 +1314,9 @@ moves_loop: // When in check, search starts here
           else if (!capture && quietCount < 64)
               quietsSearched[quietCount++] = move;
       }
+
+      if (moveCount > 10 && depth < 5 && bestValue < alpha)
+          break;
     }
 
     // The following condition would detect a stop only after move loop has been
