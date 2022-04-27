@@ -552,7 +552,7 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
+    Value bestValue, value, ttValue, eval, maxValue, probCutBeta, bestMoveStaticEval;
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
@@ -567,6 +567,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    bestMoveStaticEval = -VALUE_INFINITE;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1164,7 +1165,10 @@ moves_loop: // When in check, search starts here
               r += 2;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
-          if (ttCapture)
+          if (ttCapture )
+              r++;
+
+          if ( bestMoveStaticEval > -VALUE_INFINITE && -bestMoveStaticEval - ss->staticEval > 300)
               r++;
 
           // Decrease reduction at PvNodes if bestvalue
@@ -1291,6 +1295,7 @@ moves_loop: // When in check, search starts here
           if (value > alpha)
           {
               bestMove = move;
+              bestMoveStaticEval = (ss+1)->staticEval;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
