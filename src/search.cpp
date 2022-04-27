@@ -567,6 +567,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ss->alphaSetByMove = rootNode ? false : (ss-1)->betaSetByMove;
+    ss->betaSetByMove  = rootNode ? false : (ss-1)->alphaSetByMove;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1176,6 +1178,13 @@ moves_loop: // When in check, search starts here
           if (PvNode)
               r -= 1 + 15 / ( 3 + depth );
 
+          if (    depth < 6
+               && (ss->ply % 2 == 0 ?
+                    (!ss->alphaSetByMove && ss->staticEval > alpha) :
+                    (!ss->betaSetByMove && ss->staticEval < beta))
+             )
+              r--;
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1296,7 +1305,10 @@ moves_loop: // When in check, search starts here
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
+              {
                   alpha = value;
+                  ss->alphaSetByMove = true;
+              }
               else
               {
                   assert(value >= beta); // Fail high
