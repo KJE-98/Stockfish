@@ -568,6 +568,12 @@ namespace {
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
 
+    if (rootNode)
+    {
+        thisThread->failHighCount = 0;
+        thisThread->failLowCount = 0;
+    }
+
     // Check for the available remaining time
     if (thisThread == Threads.main())
         static_cast<MainThread*>(thisThread)->check_time();
@@ -1370,6 +1376,16 @@ moves_loop: // When in check, search starts here
                   depth, bestMove, ss->staticEval);
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
+
+    if (bestValue < alpha)
+        thisThread->failLowCount++;
+    if (bestValue > beta)
+        thisThread->failHighCount++;
+
+    if (rootNode)
+    {
+        sync_cout << "failHighs: " << thisThread->failHighCount << "failLowCount: " << thisThread->failLowCount << sync_endl;
+    }
 
     return bestValue;
   }
