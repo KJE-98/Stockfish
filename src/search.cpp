@@ -567,6 +567,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ss->alphaSetByMove = rootNode ? false : (ss-1)->betaSetByMove;
+    ss->betaSetByMove  = rootNode ? false : (ss-1)->alphaSetByMove;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1116,6 +1118,13 @@ moves_loop: // When in check, search starts here
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
+
+          else if (   PvNode
+                  && (moveCount == 2 || moveCount == 3)
+                  && ss->staticEval > alpha
+                  && !(ss->alphaSetByMove)
+                  )
+              extension = 1;
       }
 
       // Add extension to new depth
@@ -1296,7 +1305,10 @@ moves_loop: // When in check, search starts here
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
+              {
                   alpha = value;
+                  ss->alphaSetByMove = true;
+              }
               else
               {
                   assert(value >= beta); // Fail high
