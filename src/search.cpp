@@ -567,6 +567,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ss->alphaSetByMove = rootNode ? false : (ss-1)->betaSetByMove;
+    ss->betaSetByMove  = rootNode ? false : (ss-1)->alphaSetByMove;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1296,12 +1298,17 @@ moves_loop: // When in check, search starts here
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
+              {
                   alpha = value;
+                  ss->alphaSetByMove = true;
+              }
               else
               {
                   assert(value >= beta); // Fail high
                   break;
               }
+              if (beta - alpha < 15 && PvNode && ss->betaSetByMove && (ss->ply < 2 || ((ss-1)->betaSetByMove)) )
+                  break;
           }
       }
 
