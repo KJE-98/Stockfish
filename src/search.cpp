@@ -1302,6 +1302,8 @@ moves_loop: // When in check, search starts here
                   assert(value >= beta); // Fail high
                   break;
               }
+              if (beta - alpha < 8 && PvNode && ss->ply > thisThread->rootDepth / 3)
+                  break;
           }
       }
 
