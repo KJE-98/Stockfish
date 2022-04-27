@@ -1196,7 +1196,12 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          Value newAlpha = std::max(-VALUE_INFINITE, alpha + 20);
+
+          value = -search<NonPV>(pos, ss+1, -(newAlpha+1), -newAlpha, d, true);
+
+          if (value < newAlpha && value > alpha)
+              value = alpha - 1;
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
