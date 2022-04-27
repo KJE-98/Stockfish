@@ -1302,6 +1302,8 @@ moves_loop: // When in check, search starts here
                   assert(value >= beta); // Fail high
                   break;
               }
+              if (beta - alpha < 8 && PvNode && depth > 3 && ss->ply > 1)
+                  break;
           }
       }
 
