@@ -1315,7 +1315,7 @@ moves_loop: // When in check, search starts here
               quietsSearched[quietCount++] = move;
       }
 
-      if (moveCount > 10 && depth < 5 && bestValue < alpha)
+      if (moveCount > 20 && ss->ply > 5 && !bestMove)
           break;
     }
 
