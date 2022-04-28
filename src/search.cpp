@@ -554,7 +554,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
-    bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
+    bool capture, doFullDepthSearch, moveCountPruning, ttCapture, ttCheck;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
 
@@ -567,6 +567,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ttCheck            = false;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -626,6 +627,8 @@ namespace {
     ttMove =  rootNode ? thisThread->rootMoves[thisThread->pvIdx].pv[0]
             : ss->ttHit    ? tte->move() : MOVE_NONE;
     ttCapture = ttMove && pos.capture(ttMove);
+    ttCheck = ttMove && pos.gives_check(ttMove);
+
     if (!excludedMove)
         ss->ttPv = PvNode || (ss->ttHit && tte->is_pv());
 
@@ -1165,6 +1168,10 @@ moves_loop: // When in check, search starts here
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
+              r++;
+
+          // Increase reduction if ttMove is a check
+          if (ttCheck)
               r++;
 
           // Decrease reduction at PvNodes if bestvalue
