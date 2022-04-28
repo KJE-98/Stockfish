@@ -1167,7 +1167,7 @@ moves_loop: // When in check, search starts here
               r += 2;
 
           // Increase reduction if bestMove or ttMove is a capture (~3 Elo)
-          if (bestMoveCaptures || bestMoveChecks || ttCapture)
+          if ( bestMove == ttMove && (bestMoveChecks || bestMoveCaptures) )
               r++;
 
           // Decrease reduction at PvNodes if bestvalue
