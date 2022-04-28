@@ -1166,8 +1166,12 @@ moves_loop: // When in check, search starts here
           if (cutNode && move != ss->killers[0])
               r += 2;
 
-          // Increase reduction if bestMove or ttMove is a capture (~3 Elo)
-          if (bestMoveCaptures || bestMoveChecks || ttCapture)
+          // Increase reduction if ttMove is a capture (~3 Elo)
+          if ( ttCapture )
+              r++;
+
+          // Increase reduction if bestMove is a check
+          if ( bestMoveChecks )
               r++;
 
           // Decrease reduction at PvNodes if bestvalue
