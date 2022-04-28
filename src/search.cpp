@@ -552,9 +552,9 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
+    Value bestValue, value, ttValue, eval, maxValue, probCutBeta, bestMoveStaticEval;
     bool givesCheck, improving, didLMR, priorCapture;
-    bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
+    bool capture, doFullDepthSearch, moveCountPruning, ttCapture, bestMoveCaptures, bestMoveChecks;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
 
@@ -567,6 +567,9 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    bestMoveCaptures   = false;
+    bestMoveChecks     = false;
+    bestMoveStaticEval = -VALUE_INFINITE;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1163,8 +1166,8 @@ moves_loop: // When in check, search starts here
           if (cutNode && move != ss->killers[0])
               r += 2;
 
-          // Increase reduction if ttMove is a capture (~3 Elo)
-          if (ttCapture)
+          // Increase reduction if bestMove or ttMove is a capture (~3 Elo)
+          if (bestMoveCaptures || bestMoveChecks || ttCapture)
               r++;
 
           // Decrease reduction at PvNodes if bestvalue
@@ -1291,12 +1294,17 @@ moves_loop: // When in check, search starts here
           if (value > alpha)
           {
               bestMove = move;
+              bestMoveCaptures = capture;
+              bestMoveChecks = givesCheck;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
+              {
                   alpha = value;
+                  bestMoveStaticEval = (ss+1)->staticEval;
+              }
               else
               {
                   assert(value >= beta); // Fail high
