@@ -1118,9 +1118,6 @@ moves_loop: // When in check, search starts here
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
-
-          if (bestMove && delta < 20 && ss->betaSetByMove)
-              extension = -1;
       }
 
       // Add extension to new depth
