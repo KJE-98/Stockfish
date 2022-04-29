@@ -1118,6 +1118,8 @@ Value Eval::evaluate(const Position& pos) {
   // Guarantee evaluation does not hit the tablebase range
   v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 
+  if (std::abs(v) < 41)
+      v = Value(0);
   return v;
 }
 
