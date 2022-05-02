@@ -120,6 +120,7 @@ namespace {
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus);
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
+  void add_move_to_array(Move* moves, Move move);
 
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
@@ -608,7 +609,11 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
-    ss->moveForPB        = MOVE_NONE;
+
+    for (int i = 0; i < 10; i++)
+    {
+        ss->movesForPB[i] = MOVE_NONE;
+    }
 
 
     // Initialize statScore to zero for the grandchildren of the current position.
@@ -964,23 +969,26 @@ moves_loop: // When in check, search starts here
                          && (tte->bound() & BOUND_UPPER)
                          && tte->depth() >= depth;
 
-    Move searched[MAX_MOVES] = {MOVE_NONE};
-    int loopCount = 0;
+    Move searched[MAX_MOVES];
     Move PBmove = MOVE_NONE;
+    int loopcount = 0;
+    int PBindex = 0;
+
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
     while (
-        (move = PBmove) != MOVE_NONE ||
-        (move = mp.next_move(moveCountPruning)) != MOVE_NONE)
+        moveCount > 20 && PBindex < 10 ?
+        ( (move = ss->movesForPB[PBindex++]) != MOVE_NONE ) || ( (move = mp.next_move(moveCountPruning)) != MOVE_NONE ) :
+        (move = mp.next_move(moveCountPruning)) != MOVE_NONE
+        )
     {
       assert(is_ok(move));
 
-      bool checkPseudo = PBmove != MOVE_NONE;
-      PBmove = MOVE_NONE;
+      bool inPBmove = PBmove != MOVE_NONE;
 
       {
       bool continueLoop = false;
-      for (int i = 0; i <= loopCount; i++)
+      for (int i = 0; i <= loopcount; i++)
       {
           if (move == searched[i])
           {
@@ -1004,14 +1012,14 @@ moves_loop: // When in check, search starts here
           continue;
 
       // Check for legality
-      if (checkPseudo && !pos.pseudo_legal(move))
+      if (inPBmove && !pos.pseudo_legal(move))
           continue;
 
       if (!rootNode && !pos.legal(move))
           continue;
 
-      searched[loopCount] = move;
-      loopCount++;
+      searched[loopcount] = move;
+      loopcount++;
 
       ss->moveCount = ++moveCount;
 
@@ -1161,6 +1169,7 @@ moves_loop: // When in check, search starts here
 
       // Update the current move (this must be done after singular extension search)
       ss->currentMove = move;
+      ss->currentMoveCapture = capture;
       ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
                                                                 [capture]
                                                                 [movedPiece]
@@ -1350,9 +1359,6 @@ moves_loop: // When in check, search starts here
           else if (!capture && quietCount < 64)
               quietsSearched[quietCount++] = move;
       }
-
-      if (depth > 5 && moveCount > 5)
-          PBmove = (ss+2)->moveForPB;
     }
 
     // The following condition would detect a stop only after move loop has been
@@ -1380,7 +1386,8 @@ moves_loop: // When in check, search starts here
     {
         update_all_stats(pos, ss, bestMove, bestValue, beta, prevSq,
                          quietsSearched, quietCount, capturesSearched, captureCount, depth);
-        ss->moveForPB = bestMove;
+        if (!(ss-1)->currentMoveCapture)
+              add_move_to_array((ss+2)->movesForPB, bestMove);
     }
 
 
@@ -1828,6 +1835,19 @@ moves_loop: // When in check, search starts here
     }
 
     return best;
+  }
+
+  void add_move_to_array(Move* moves, Move move)
+  {
+      if (moves[9] != MOVE_NONE)
+          return;
+      for (int i = 0; i < 10; i++)
+      {
+          if (moves[i] == move)
+              return;
+          else if (moves[i] == MOVE_NONE)
+              moves[i] = move;
+      }
   }
 
 } // namespace
