@@ -120,7 +120,8 @@ namespace {
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus);
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
-  void add_move_to_array(Move* moves, Move move);
+  void add_move_to_PB(Stack* stack, Move move, int bonus);
+  void sort_PB_moves(Stack* stack);
 
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
@@ -610,9 +611,10 @@ namespace {
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i <30; i++)
     {
-        ss->movesForPB[i] = MOVE_NONE;
+        ss->PBmoves[i] = MOVE_NONE;
+        ss->PBmovesCount[i] = -1;
     }
 
 
@@ -1005,13 +1007,17 @@ moves_loop: // When in check, search starts here
       capture = pos.capture(move);
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
-      bool pbMove = false;
+      int PBplace = 31;
+      int PBcount = 0;
 
-      for (int i = 0; i < 10; i++)
+      sort_PB_moves(ss);
+
+      for (int i = 0; i < 30; i++)
       {
-          if (move == ss->movesForPB[i])
+          if (move == ss->PBmoves[i])
           {
-              pbMove = true;
+              PBplace = i;
+              PBcount = ss->PBmovesCount[i];
           }
       }
 
@@ -1199,8 +1205,10 @@ moves_loop: // When in check, search starts here
           if (PvNode)
               r -= 1 + 15 / ( 3 + depth );
 
-          if (pbMove)
+          if (depth < 10 && PBplace < 1 && PBcount > 60 * moveCount)
+          {
               r--;
+          }
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1370,7 +1378,11 @@ moves_loop: // When in check, search starts here
         update_all_stats(pos, ss, bestMove, bestValue, beta, prevSq,
                          quietsSearched, quietCount, capturesSearched, captureCount, depth);
         if (!(ss-1)->currentMoveCapture)
-              add_move_to_array((ss-2)->movesForPB, bestMove);
+        {
+            add_move_to_PB((ss-2), bestMove, 4);
+            add_move_to_PB((ss-4), bestMove, 2);
+            add_move_to_PB((ss-6), bestMove, 1);
+        }
     }
 
 
@@ -1820,16 +1832,46 @@ moves_loop: // When in check, search starts here
     return best;
   }
 
-  void add_move_to_array(Move* moves, Move move)
+  void add_move_to_PB(Stack* stack, Move move, int bonus)
   {
-      if (moves[9] != MOVE_NONE)
+      if (move == MOVE_NONE)
           return;
-      for (int i = 0; i < 10; i++)
+      for (int i = 0; i < 30; i++)
       {
-          if (moves[i] == move)
-              return;
-          else if (moves[i] == MOVE_NONE)
-              moves[i] = move;
+          if (stack->PBmoves[i] == move)
+          {
+              stack->PBmovesCount[i] += bonus;
+              break;
+          }
+          else if (stack->PBmoves[i] == MOVE_NONE)
+          {
+              stack->PBmoves[i] = move;
+              stack->PBmovesCount[i] = bonus;
+              break;
+          }
+      }
+  }
+
+  void sort_PB_moves (Stack* stack){
+      Move* PBmoves = stack->PBmoves;
+      int* PBmovesCount = stack->PBmovesCount;
+
+      int i, j;
+
+      for (i = 28; i >= 0; i--)
+      {
+          Move currMove = PBmoves[i];
+          int currCount = PBmovesCount[i];
+          j = i + 1;
+
+          while (j < 30 && PBmovesCount[j] > currCount)
+          {
+              PBmovesCount[j - 1] = PBmovesCount[j];
+              PBmoves[j-1] = PBmoves[j];
+              j++;
+          }
+          PBmovesCount[j - 1] = currCount;
+          PBmoves[j - 1] = currMove;
       }
   }
 
