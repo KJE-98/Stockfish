@@ -120,7 +120,7 @@ namespace {
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus);
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
-  void add_move_to_array(Move* moves, Move move);
+  void add_move_to_array(Move* moves, Move* movesTwice, Move move);
 
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
@@ -614,6 +614,10 @@ namespace {
     {
         ss->movesForPB[i] = MOVE_NONE;
     }
+    for (int i = 0; i < 10; i++)
+    {
+        ss->movesForPBTwice[i] = MOVE_NONE;
+    }
 
 
     // Initialize statScore to zero for the grandchildren of the current position.
@@ -1006,12 +1010,20 @@ moves_loop: // When in check, search starts here
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
       bool pbMove = false;
+      bool pbMoveTwice = false;
 
       for (int i = 0; i < 10; i++)
       {
           if (move == ss->movesForPB[i])
           {
               pbMove = true;
+          }
+      }
+      for (int i = 0; i < 10; i++)
+      {
+          if (move == ss->movesForPBTwice[i])
+          {
+              pbMoveTwice = true;
           }
       }
 
@@ -1138,11 +1150,6 @@ moves_loop: // When in check, search starts here
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
-
-          else if (    depth > 9
-                    && move == ss->killers[0]
-                    && pbMove)
-              extension = 1;
       }
 
       // Add extension to new depth
@@ -1204,8 +1211,10 @@ moves_loop: // When in check, search starts here
           if (PvNode)
               r -= 1 + 15 / ( 3 + depth );
 
-          if (pbMove)
-              r -= 1 + (move != ss->killers[0]);
+          if (pbMoveTwice)
+          {
+              r--;
+          }
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1375,7 +1384,7 @@ moves_loop: // When in check, search starts here
         update_all_stats(pos, ss, bestMove, bestValue, beta, prevSq,
                          quietsSearched, quietCount, capturesSearched, captureCount, depth);
         if (!(ss-1)->currentMoveCapture)
-              add_move_to_array((ss-2)->movesForPB, bestMove);
+              add_move_to_array((ss-2)->movesForPB, (ss-2)->movesForPBTwice, bestMove);
     }
 
 
@@ -1825,16 +1834,31 @@ moves_loop: // When in check, search starts here
     return best;
   }
 
-  void add_move_to_array(Move* moves, Move move)
+  void add_move_to_array(Move* moves, Move* movesTwice, Move move)
   {
-      if (moves[9] != MOVE_NONE)
-          return;
+      bool addToTwice = false;
       for (int i = 0; i < 10; i++)
       {
           if (moves[i] == move)
-              return;
+          {
+              addToTwice = true;
+              break;
+          }
           else if (moves[i] == MOVE_NONE)
               moves[i] = move;
+      }
+
+      if (!addToTwice)
+          return;
+
+      for (int i = 0; i < 10; i++)
+      {
+          if (movesTwice[i] == move)
+          {
+              break;
+          }
+          else if (movesTwice[i] == MOVE_NONE)
+              movesTwice[i] = move;
       }
   }
 

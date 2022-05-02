@@ -56,6 +56,7 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   Move movesForPB[10];
+  Move movesForPBTwice[10];
 };
 
 
