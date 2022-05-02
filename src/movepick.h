@@ -134,6 +134,7 @@ private:
   template<GenType> void score();
   ExtMove* begin() { return cur; }
   ExtMove* end() { return endMoves; }
+  ExtMove moves[MAX_MOVES];
 
   const Position& pos;
   const ButterflyHistory* mainHistory;
@@ -145,7 +146,6 @@ private:
   Square recaptureSquare;
   Value threshold;
   Depth depth;
-  ExtMove moves[MAX_MOVES];
 };
 
 } // namespace Stockfish

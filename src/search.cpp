@@ -568,6 +568,7 @@ namespace {
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
 
+
     // Check for the available remaining time
     if (thisThread == Threads.main())
         static_cast<MainThread*>(thisThread)->check_time();
@@ -607,6 +608,8 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->moveForPB        = MOVE_NONE;
+
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -719,6 +722,7 @@ namespace {
 
     CapturePieceToHistory& captureHistory = thisThread->captureHistory;
 
+
     // Step 6. Static evaluation of the position
     if (ss->inCheck)
     {
@@ -760,6 +764,7 @@ namespace {
         int bonus = std::clamp(-16 * int((ss-1)->staticEval + ss->staticEval), -2000, 2000);
         thisThread->mainHistory[~us][from_to((ss-1)->currentMove)] << bonus;
     }
+
 
     // Set up the improvement variable, which is the difference between the current
     // static evaluation and the previous static evaluation at our turn (if we were
@@ -846,6 +851,7 @@ namespace {
     }
 
     probCutBeta = beta + 179 - 46 * improving;
+
 
     // Step 10. ProbCut (~4 Elo)
     // If we have a good enough capture and a reduced search returns a value
@@ -958,11 +964,33 @@ moves_loop: // When in check, search starts here
                          && (tte->bound() & BOUND_UPPER)
                          && tte->depth() >= depth;
 
+    Move searched[MAX_MOVES] = {MOVE_NONE};
+    int loopCount = 0;
+    Move PBmove = MOVE_NONE;
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
-    while ((move = mp.next_move(moveCountPruning)) != MOVE_NONE)
+    while (
+        (move = PBmove) != MOVE_NONE ||
+        (move = mp.next_move(moveCountPruning)) != MOVE_NONE)
     {
       assert(is_ok(move));
+
+      bool checkPseudo = PBmove != MOVE_NONE;
+      PBmove = MOVE_NONE;
+
+      {
+      bool continueLoop = false;
+      for (int i = 0; i <= loopCount; i++)
+      {
+          if (move == searched[i])
+          {
+              continueLoop = true;
+              break;
+          }
+      }
+      if (continueLoop)
+          continue;
+      }
 
       if (move == excludedMove)
           continue;
@@ -976,8 +1004,14 @@ moves_loop: // When in check, search starts here
           continue;
 
       // Check for legality
+      if (checkPseudo && !pos.pseudo_legal(move))
+          continue;
+
       if (!rootNode && !pos.legal(move))
           continue;
+
+      searched[loopCount] = move;
+      loopCount++;
 
       ss->moveCount = ++moveCount;
 
@@ -1196,7 +1230,9 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1314,6 +1350,9 @@ moves_loop: // When in check, search starts here
           else if (!capture && quietCount < 64)
               quietsSearched[quietCount++] = move;
       }
+
+      if (depth > 5 && moveCount < 5)
+          PBmove = (ss+2)->moveForPB;
     }
 
     // The following condition would detect a stop only after move loop has been
@@ -1338,8 +1377,12 @@ moves_loop: // When in check, search starts here
 
     // If there is a move which produces search value greater than alpha we update stats of searched moves
     else if (bestMove)
+    {
         update_all_stats(pos, ss, bestMove, bestValue, beta, prevSq,
                          quietsSearched, quietCount, capturesSearched, captureCount, depth);
+        ss->moveForPB = bestMove;
+    }
+
 
     // Bonus for prior countermove that caused the fail low
     else if (   (depth >= 4 || PvNode)
