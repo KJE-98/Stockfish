@@ -1138,9 +1138,6 @@ moves_loop: // When in check, search starts here
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
-
-          else if (pbMove)
-              extension = 1;
       }
 
       // Add extension to new depth
@@ -1201,6 +1198,9 @@ moves_loop: // When in check, search starts here
           // Decrease reduction for PvNodes based on depth
           if (PvNode)
               r -= 1 + 15 / ( 3 + depth );
+
+          if (pbMove)
+              r--;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
