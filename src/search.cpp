@@ -969,36 +969,13 @@ moves_loop: // When in check, search starts here
                          && (tte->bound() & BOUND_UPPER)
                          && tte->depth() >= depth;
 
-    Move searched[MAX_MOVES];
-    Move PBmove = MOVE_NONE;
-    int loopcount = 0;
-    int PBindex = 0;
-
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
     while (
-        moveCount > 20 && PBindex < 10 ?
-        ( (move = ss->movesForPB[PBindex++]) != MOVE_NONE ) || ( (move = mp.next_move(moveCountPruning)) != MOVE_NONE ) :
-        (move = mp.next_move(moveCountPruning)) != MOVE_NONE
-        )
+          (move = mp.next_move(moveCountPruning)) != MOVE_NONE
+          )
     {
       assert(is_ok(move));
-
-      bool inPBmove = PBmove != MOVE_NONE;
-
-      {
-      bool continueLoop = false;
-      for (int i = 0; i <= loopcount; i++)
-      {
-          if (move == searched[i])
-          {
-              continueLoop = true;
-              break;
-          }
-      }
-      if (continueLoop)
-          continue;
-      }
 
       if (move == excludedMove)
           continue;
@@ -1012,14 +989,8 @@ moves_loop: // When in check, search starts here
           continue;
 
       // Check for legality
-      if (inPBmove && !pos.pseudo_legal(move))
-          continue;
-
       if (!rootNode && !pos.legal(move))
           continue;
-
-      searched[loopcount] = move;
-      loopcount++;
 
       ss->moveCount = ++moveCount;
 
@@ -1034,6 +1005,15 @@ moves_loop: // When in check, search starts here
       capture = pos.capture(move);
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
+      bool pbMove = false;
+
+      for (int i = 0; i < 10; i++)
+      {
+          if (move == ss->movesForPB[i])
+          {
+              pbMove = true;
+          }
+      }
 
       // Calculate new depth for this move
       newDepth = depth - 1;
@@ -1157,6 +1137,9 @@ moves_loop: // When in check, search starts here
                    && move == ttMove
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
+              extension = 1;
+
+          else if (pbMove)
               extension = 1;
       }
 
@@ -1387,7 +1370,7 @@ moves_loop: // When in check, search starts here
         update_all_stats(pos, ss, bestMove, bestValue, beta, prevSq,
                          quietsSearched, quietCount, capturesSearched, captureCount, depth);
         if (!(ss-1)->currentMoveCapture)
-              add_move_to_array((ss+2)->movesForPB, bestMove);
+              add_move_to_array((ss-2)->movesForPB, bestMove);
     }
 
 
