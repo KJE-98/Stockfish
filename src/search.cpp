@@ -1351,7 +1351,7 @@ moves_loop: // When in check, search starts here
               quietsSearched[quietCount++] = move;
       }
 
-      if (depth > 5 && moveCount > 5)
+      if (depth > 10 && moveCount > 15)
           PBmove = (ss+2)->moveForPB;
     }
 
