@@ -55,8 +55,9 @@ struct Stack {
   bool ttPv;
   bool ttHit;
   int doubleExtensions;
-  Move PBmoves[30];
-  int PBmovesCount[30];
+  Move PBmoves[15];
+  int PBmovesCount[15];
+  int numberOfPBmoves;
 };
 
 

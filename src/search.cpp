@@ -610,12 +610,7 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
-
-    for (int i = 0; i <30; i++)
-    {
-        ss->PBmoves[i] = MOVE_NONE;
-        ss->PBmovesCount[i] = -1;
-    }
+    ss->numberOfPBmoves  = 0;
 
 
     // Initialize statScore to zero for the grandchildren of the current position.
@@ -1007,12 +1002,12 @@ moves_loop: // When in check, search starts here
       capture = pos.capture(move);
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
-      int PBplace = 31;
+      int PBplace = 15;
       int PBcount = 0;
 
       sort_PB_moves(ss);
 
-      for (int i = 0; i < 30; i++)
+      for (int i = 0; i < ss->numberOfPBmoves; i++)
       {
           if (move == ss->PBmoves[i])
           {
@@ -1834,21 +1829,21 @@ moves_loop: // When in check, search starts here
 
   void add_move_to_PB(Stack* stack, Move move, int bonus)
   {
+      int PBindex = stack->numberOfPBmoves;
       if (move == MOVE_NONE)
           return;
-      for (int i = 0; i < 30; i++)
+      for (int i = 0; i < PBindex; i++)
       {
           if (stack->PBmoves[i] == move)
           {
               stack->PBmovesCount[i] += bonus;
-              break;
+              return;
           }
-          else if (stack->PBmoves[i] == MOVE_NONE)
-          {
-              stack->PBmoves[i] = move;
-              stack->PBmovesCount[i] = bonus;
-              break;
-          }
+      }
+      if (PBindex < 15)
+      {
+          stack->PBmoves[PBindex] = move;
+          stack->PBmovesCount[PBindex] = bonus;
       }
   }
 
@@ -1858,13 +1853,13 @@ moves_loop: // When in check, search starts here
 
       int i, j;
 
-      for (i = 28; i >= 0; i--)
+      for (i = stack->numberOfPBmoves - 2; i >= 0; i--)
       {
           Move currMove = PBmoves[i];
           int currCount = PBmovesCount[i];
           j = i + 1;
 
-          while (j < 30 && PBmovesCount[j] > currCount)
+          while (j < 15 && PBmovesCount[j] > currCount)
           {
               PBmovesCount[j - 1] = PBmovesCount[j];
               PBmoves[j-1] = PBmoves[j];
