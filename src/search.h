@@ -55,6 +55,7 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
+  Move searched[20];
 };
 
 

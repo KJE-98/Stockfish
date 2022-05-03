@@ -120,6 +120,7 @@ namespace {
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus);
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
+  bool contains_move(Move* moves, int mc, Move move);
 
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
@@ -979,6 +980,9 @@ moves_loop: // When in check, search starts here
       if (!rootNode && !pos.legal(move))
           continue;
 
+      if (moveCount < 20)
+          ss->searched[moveCount] = move;
+
       ss->moveCount = ++moveCount;
 
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
@@ -992,6 +996,7 @@ moves_loop: // When in check, search starts here
       capture = pos.capture(move);
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
+      bool searchedEarlier = contains_move((ss-2)->searched, (ss-2)->moveCount, move) || contains_move((ss-4)->searched, (ss-4)->moveCount, move);
 
       // Calculate new depth for this move
       newDepth = depth - 1;
@@ -1179,6 +1184,9 @@ moves_loop: // When in check, search starts here
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
+
+          if (searchedEarlier)
+              r--;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1793,6 +1801,15 @@ moves_loop: // When in check, search starts here
     }
 
     return best;
+  }
+
+  bool contains_move(Move* moves, int mc, Move move){
+      for (int i = 0; i < mc; i++)
+      {
+          if (moves[i] == move)
+              return true;
+      }
+      return false;
   }
 
 } // namespace
