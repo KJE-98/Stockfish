@@ -553,7 +553,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
-    bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
+    bool capture, doFullDepthSearch, moveCountPruning, ttCapture, bestValueMoveCapturesOrChecks;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
 
@@ -566,6 +566,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    Move PBmove        = MOVE_NONE;
+    bestValueMoveCapturesOrChecks = false;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -606,6 +608,8 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
+    ss->bestValueMove    = MOVE_NONE;
+    (ss+1)->bestValueResponse= MOVE_NONE;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
     // Initialize statScore to zero for the grandchildren of the current position.
@@ -1180,6 +1184,9 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+          if (move == PBmove && !bestValueMoveCapturesOrChecks)
+              r--;
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1291,6 +1298,12 @@ moves_loop: // When in check, search starts here
       if (value > bestValue)
       {
           bestValue = value;
+
+          ss->bestValueMove = move;
+          ss->bestValueResponse = (ss+1)->bestValueMove;
+          bestValueMoveCapturesOrChecks = capture || givesCheck;
+          PBmove = (ss+1)->bestValueResponse;
+
 
           if (value > alpha)
           {
