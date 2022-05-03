@@ -607,6 +607,8 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->alphaSetByMove   = rootNode ? false : (ss-1)->betaSetByMove;
+    ss->betaSetByMove   = rootNode ? false : (ss-1)->alphaSetByMove;
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -1180,6 +1182,9 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+          if (ss->staticEval > alpha && eval < alpha && ss->alphaSetByMove)
+              r++;
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1302,6 +1307,7 @@ moves_loop: // When in check, search starts here
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
                   alpha = value;
+                  ss->alphaSetByMove = true;
 
                   // Reduce other moves if we have found at least one score improvement
                   if (   depth > 2
