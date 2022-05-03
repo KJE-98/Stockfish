@@ -33,6 +33,7 @@ namespace Search {
 
 /// Threshold used for countermoves based pruning
 constexpr int CounterMovePruneThreshold = 0;
+constexpr int PBmovesLength = 10;
 
 
 /// Stack struct keeps track of the information we need to remember from nodes
@@ -55,8 +56,8 @@ struct Stack {
   bool ttPv;
   bool ttHit;
   int doubleExtensions;
-  Move PBmoves[10];
-  int PBmovesCount[10];
+  Move PBmoves[PBmovesLength];
+  int PBmovesCount[PBmovesLength];
   int numberOfPBmoves;
 };
 
