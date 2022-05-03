@@ -1002,7 +1002,7 @@ moves_loop: // When in check, search starts here
       capture = pos.capture(move);
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
-      int PBplace = 15;
+      int PBplace = 10;
       int PBcount = 0;
 
       sort_PB_moves(ss);
@@ -1200,11 +1200,6 @@ moves_loop: // When in check, search starts here
           if (PvNode)
               r -= 1 + 15 / ( 3 + depth );
 
-          if (depth < 10 && PBplace < 1 && PBcount > 60 * moveCount)
-          {
-              r--;
-          }
-
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1374,9 +1369,8 @@ moves_loop: // When in check, search starts here
                          quietsSearched, quietCount, capturesSearched, captureCount, depth);
         if (!(ss-1)->currentMoveCapture)
         {
-            add_move_to_PB((ss-2), bestMove, 4);
-            add_move_to_PB((ss-4), bestMove, 2);
-            add_move_to_PB((ss-6), bestMove, 1);
+            add_move_to_PB((ss-2), bestMove, 2);
+            add_move_to_PB((ss-4), bestMove, 1);
         }
     }
 
@@ -1840,10 +1834,11 @@ moves_loop: // When in check, search starts here
               return;
           }
       }
-      if (PBindex < 15)
+      if (PBindex < 10)
       {
           stack->PBmoves[PBindex] = move;
           stack->PBmovesCount[PBindex] = bonus;
+          stack->numberOfPBmoves++;
       }
   }
 
@@ -1859,7 +1854,7 @@ moves_loop: // When in check, search starts here
           int currCount = PBmovesCount[i];
           j = i + 1;
 
-          while (j < 15 && PBmovesCount[j] > currCount)
+          while (j < 10 && PBmovesCount[j] > currCount)
           {
               PBmovesCount[j - 1] = PBmovesCount[j];
               PBmoves[j-1] = PBmoves[j];
