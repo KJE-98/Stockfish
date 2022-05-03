@@ -566,6 +566,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    Move PBmove        = MOVE_NONE;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -606,6 +607,8 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
+    ss->bestValueMove    = MOVE_NONE;
+    (ss+1)->bestValueResponse= MOVE_NONE;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
     // Initialize statScore to zero for the grandchildren of the current position.
@@ -1116,6 +1119,9 @@ moves_loop: // When in check, search starts here
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
+
+          else if ( PvNode && move == PBmove && move == ss->killers[0])
+              extension = 1;
       }
 
       // Add extension to new depth
@@ -1291,6 +1297,9 @@ moves_loop: // When in check, search starts here
       if (value > bestValue)
       {
           bestValue = value;
+          ss->bestValueMove = move;
+          ss->bestValueResponse = (ss+1)->bestValueMove;
+          PBmove = (ss+1)->bestValueResponse;
 
           if (value > alpha)
           {
