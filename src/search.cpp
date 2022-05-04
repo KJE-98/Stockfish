@@ -555,7 +555,7 @@ namespace {
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement, complexity;
+    int moveCount, captureCount, quietCount, improvement, complexity, alphaRaisedCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -566,6 +566,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    alphaRaisedCount   = 0;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -998,6 +999,12 @@ moves_loop: // When in check, search starts here
 
       Value delta = beta - alpha;
 
+      if (   depth < 7
+          && beta  <  VALUE_KNOWN_WIN
+          && alpha > -VALUE_KNOWN_WIN
+          && newDepth > 0 )
+                  newDepth = std::max(1, newDepth - alphaRaisedCount);
+
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
           && pos.non_pawn_material(us)
@@ -1304,11 +1311,7 @@ moves_loop: // When in check, search starts here
                   alpha = value;
 
                   // Reduce other moves if we have found at least one score improvement
-                  if (   depth > 2
-                      && depth < 7
-                      && beta  <  VALUE_KNOWN_WIN
-                      && alpha > -VALUE_KNOWN_WIN)
-                     depth -= 1;
+                  alphaRaisedCount++;
 
                   assert(depth > 0);
               }
