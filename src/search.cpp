@@ -967,6 +967,8 @@ moves_loop: // When in check, search starts here
       if (move == excludedMove)
           continue;
 
+      int movesRemaining = mp.len();
+
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
       // mode we also skip PV moves which have been already searched and those
@@ -1179,6 +1181,9 @@ moves_loop: // When in check, search starts here
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
+
+          if (bestMove && movesRemaining < 9)
+              r -= 29 / (10 + movesRemaining);
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
