@@ -1320,7 +1320,7 @@ moves_loop: // When in check, search starts here
               }
           }
       }
-      else
+      else if (moveCount > 2)
          ss->cutoffCnt = 0;
 
 
