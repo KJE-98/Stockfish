@@ -20,6 +20,7 @@
 
 #include "bitboard.h"
 #include "movepick.h"
+#include "tt.h"
 
 namespace Stockfish {
 
@@ -137,6 +138,7 @@ void MovePicker::score() {
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
       else if constexpr (Type == QUIETS)
+      {
           m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                    + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                    +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
@@ -148,7 +150,15 @@ void MovePicker::score() {
                           :                                         !(to_sq(m) & threatenedByPawn)  ? 15000
                           :                                                                           0)
                           :                                                                           0);
-
+          bool ttHit = false;
+          TTEntry* ttEntry = nullptr;
+          if (depth > 10 && ttMove != MOVE_NONE)
+          {
+              ttEntry = TT.probe(pos.key_after(m), ttHit);
+              if ( ttHit && ttEntry->depth() - depth > 8)
+                  m.value += 1000 + 200 * (ttEntry->depth() - 8);
+          }
+      }
       else // Type == EVASIONS
       {
           if (pos.capture(m))
