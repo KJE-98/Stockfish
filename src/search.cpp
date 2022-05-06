@@ -1294,6 +1294,10 @@ moves_loop: // When in check, search starts here
 
           if (value > alpha)
           {
+              bool earlyCut = false;
+              if (bestMove && moveCount > 30 && depth < 5)
+                  earlyCut = true;
+
               bestMove = move;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
@@ -1318,6 +1322,9 @@ moves_loop: // When in check, search starts here
                   assert(value >= beta); // Fail high
                   break;
               }
+
+              if (earlyCut)
+                  break;
           }
       }
       else
