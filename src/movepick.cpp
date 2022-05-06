@@ -61,11 +61,16 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Move cm,
-                                                             const Move* killers)
+                                                             const Move* killers,
+                                                             Move* sd,
+                                                             const int smc)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
              ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
 {
   assert(d > 0);
+
+  searchedMoves = sd;
+  searchedMoveCount = smc;
 
   stage = (pos.checkers() ? EVASION_TT : MAIN_TT) +
           !(ttm && pos.pseudo_legal(ttm));
@@ -84,6 +89,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
           !(   ttm
             && (pos.checkers() || depth > DEPTH_QS_RECAPTURES || to_sq(ttm) == recaptureSquare)
             && pos.pseudo_legal(ttm));
+
+  searchedMoveCount = 0;
 }
 
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
@@ -96,6 +103,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, Depth d, const Cap
   stage = PROBCUT_TT + !(ttm && pos.capture(ttm)
                              && pos.pseudo_legal(ttm)
                              && pos.see_ge(ttm, threshold));
+
+  searchedMoveCount = 0;
 }
 
 /// MovePicker::score() assigns a numerical value to each move in a list, used
@@ -132,11 +141,14 @@ void MovePicker::score() {
   }
 
   for (auto& m : *this)
+  {
+
       if constexpr (Type == CAPTURES)
           m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
       else if constexpr (Type == QUIETS)
+      {
           m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                    + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                    +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
@@ -149,6 +161,15 @@ void MovePicker::score() {
                           :                                                                           0)
                           :                                                                           0);
 
+          for (int i = 0; i < searchedMoveCount; i++)
+          {
+            if ( searchedMoves[i] == m )
+              {
+                  m.value += 500;
+                  break;
+              }
+          }
+      }
       else // Type == EVASIONS
       {
           if (pos.capture(m))
@@ -158,7 +179,9 @@ void MovePicker::score() {
               m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                        + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                        - (1 << 28);
+
       }
+  }
 }
 
 /// MovePicker::select() returns the next move satisfying a predicate function.

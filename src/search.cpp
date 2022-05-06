@@ -946,7 +946,9 @@ moves_loop: // When in check, search starts here
                                       &captureHistory,
                                       contHist,
                                       countermove,
-                                      ss->killers);
+                                      ss->killers,
+                                      (ss-2)->searchedMoves,
+                                      (ss-2)->moveCount);
 
     value = bestValue;
     moveCountPruning = false;
@@ -979,6 +981,7 @@ moves_loop: // When in check, search starts here
       if (!rootNode && !pos.legal(move))
           continue;
 
+      ss->searchedMoves[moveCount] = move;
       ss->moveCount = ++moveCount;
 
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
