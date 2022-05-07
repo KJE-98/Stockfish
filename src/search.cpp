@@ -556,12 +556,14 @@ namespace {
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
+    Piece priorCapturedPiece;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
     thisThread->depth  = depth;
     ss->inCheck        = pos.checkers();
-    priorCapture       = pos.captured_piece();
+    priorCapturedPiece = pos.captured_piece();
+    priorCapture       = priorCapturedPiece;
     Color us           = pos.side_to_move();
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
@@ -1116,6 +1118,11 @@ moves_loop: // When in check, search starts here
                    && move == ss->killers[0]
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
+
+          if ( (priorCapturedPiece == W_QUEEN || priorCapturedPiece == B_QUEEN) && alpha > 200)
+          {
+              extension -= 3;
+          }
       }
 
       // Add extension to new depth
