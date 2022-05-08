@@ -604,6 +604,7 @@ namespace {
     (ss+1)->excludedMove = bestMove = MOVE_NONE;
     (ss+2)->killers[0]   = (ss+2)->killers[1] = MOVE_NONE;
     (ss+2)->cutoffCnt    = 0;
+    (ss+3)->deeperCutCount = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
@@ -1180,6 +1181,9 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+          if ((ss+1)->cutoffCnt > 2 && (ss+3)->deeperCutCount > 5 && !PvNode)
+              r++;
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1315,13 +1319,18 @@ moves_loop: // When in check, search starts here
               else
               {
                   ss->cutoffCnt++;
+                  ss->deeperCutCount++;
+
                   assert(value >= beta); // Fail high
                   break;
               }
           }
       }
       else
-         ss->cutoffCnt = 0;
+      {
+          ss->cutoffCnt = 0;
+          ss->deeperCutCount = 0;
+      }
 
 
       // If the move is worse than some previously searched move, remember it to update its stats later
