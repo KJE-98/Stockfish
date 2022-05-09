@@ -608,6 +608,9 @@ namespace {
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
+    if (!PvNode)
+          ss->delta = (ss-1)->delta;
+
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
     // starts with statScore = 0. Later grandchildren start with the last calculated
@@ -996,7 +999,10 @@ moves_loop: // When in check, search starts here
       // Calculate new depth for this move
       newDepth = depth - 1;
 
-      Value delta = beta - alpha;
+      Value delta = ss->delta = beta - alpha;
+
+      if (PvNode)
+          ss->delta = delta;
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
@@ -1179,6 +1185,9 @@ moves_loop: // When in check, search starts here
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
+
+          if (!PvNode)
+              r += ss->delta < 10;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
