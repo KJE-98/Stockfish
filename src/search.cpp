@@ -607,6 +607,10 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->inLMR = (ss-1)->inLMR;
+
+    if (!PvNode)
+          ss->delta = (ss-1)->delta;
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -996,7 +1000,10 @@ moves_loop: // When in check, search starts here
       // Calculate new depth for this move
       newDepth = depth - 1;
 
-      Value delta = beta - alpha;
+      Value delta = ss->delta = beta - alpha;
+
+      if (PvNode)
+          ss->delta = delta;
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
@@ -1180,6 +1187,9 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+          if (!PvNode && !ss->inLMR)
+              r += ss->delta < 10;
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1200,8 +1210,9 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
+          ss->inLMR = true;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
-
+          ss->inLMR = (ss-1)->inLMR;
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
           doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
