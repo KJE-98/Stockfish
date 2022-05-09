@@ -608,6 +608,12 @@ namespace {
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
+    ss->alphaSetByMove = rootNode ? false : (ss-1)->betaSetByMove;
+    ss->betaSetByMove = rootNode? false : (ss-1)->alphaSetByMove;
+
+    if (!PvNode)
+          ss->delta = (ss-1)->delta;
+
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
     // starts with statScore = 0. Later grandchildren start with the last calculated
@@ -998,6 +1004,9 @@ moves_loop: // When in check, search starts here
 
       Value delta = beta - alpha;
 
+      if (PvNode)
+          ss->delta = delta;
+
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
           && pos.non_pawn_material(us)
@@ -1063,6 +1072,7 @@ moves_loop: // When in check, search starts here
           if (   !rootNode
               &&  depth >= 4 + 2 * (PvNode && tte->is_pv())
               &&  move == ttMove
+              && (ss->delta > 10 || !ss->alphaSetByMove)
               && !excludedMove // Avoid recursive singular search
            /* &&  ttValue != VALUE_NONE Already implicit in the next condition */
               &&  abs(ttValue) < VALUE_KNOWN_WIN
@@ -1302,6 +1312,7 @@ moves_loop: // When in check, search starts here
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
                   alpha = value;
+                  ss->alphaSetByMove = true;
 
                   // Reduce other moves if we have found at least one score improvement
                   if (   depth > 2
