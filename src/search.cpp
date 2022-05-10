@@ -566,6 +566,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ss->LMRcount       = rootNode ? 0 : (ss-1)->LMRcount;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1141,7 +1142,7 @@ moves_loop: // When in check, search starts here
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
       // cases where we extend a son if it has good chances to be "interesting".
-      if (    depth >= 2
+      if (    depth >= 2 + 2 * (ss->LMRcount > thisThread->rootDepth / 6)
           &&  moveCount > 1 + (PvNode && ss->ply <= 1)
           && (   !ss->ttPv
               || !capture
@@ -1200,7 +1201,9 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
+          ss->LMRcount++;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          ss->LMRcount--;
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
