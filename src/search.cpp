@@ -58,9 +58,6 @@ using namespace Search;
 
 namespace {
 
-  // Different node types, used as a template parameter
-  enum NodeType { NonPV, PV, Root };
-
   // Futility margin
   Value futility_margin(Depth d, bool improving) {
     return Value(168 * (d - improving));
@@ -521,6 +518,8 @@ namespace {
     constexpr bool PvNode = nodeType != NonPV;
     constexpr bool rootNode = nodeType == Root;
     const Depth maxNextDepth = rootNode ? depth : depth + 1;
+
+    ss->nodetype = nodeType;
 
     // Check if we have an upcoming move which draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
@@ -1173,7 +1172,7 @@ moves_loop: // When in check, search starts here
               r--;
 
           // Decrease reduction for PvNodes based on depth
-          if (PvNode)
+          if (PvNode || (ss-1)->nodetype == PV || ((ss-2)->nodetype) == PV)
               r -= 1 + 15 / ( 3 + depth );
 
           // Increase reduction if next ply has a lot of fail high else reset count to 0
