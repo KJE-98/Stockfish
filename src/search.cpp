@@ -569,6 +569,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ss->LMRcount       = rootNode ? 0 : (ss-1)->LMRcount;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1056,7 +1057,7 @@ moves_loop: // When in check, search starts here
 
       // Step 15. Extensions (~66 Elo)
       // We take care to not overdo to avoid search getting stuck.
-      if (ss->ply < thisThread->rootDepth * 2)
+      if (ss->ply < thisThread->rootDepth * 2 && ss->LMRcount < 4)
       {
           // Singular extension search (~58 Elo). If all moves but one fail low on a
           // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
@@ -1203,7 +1204,9 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
+          ss->LMRcount++;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          ss->LMRcount--;
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
