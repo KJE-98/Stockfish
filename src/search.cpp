@@ -538,8 +538,10 @@ namespace {
     }
 
     // Dive into quiescence search when the depth reaches zero
-    if (depth <= 0)
+    if (depth <= 0){
+
         return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+    }
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -558,7 +560,8 @@ namespace {
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement, complexity;
+    int moveCount, captureCount, quietCount, improvement, complexity, similarity;
+    Bitboard currPosition[10];
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -569,6 +572,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+
+    similarity = 0;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -610,6 +615,60 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     ss->depth            = depth;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->planSet = false;
+    (ss+1)->planSet = false;
+
+    currPosition[0] = pos.pieces(WHITE, KNIGHT);
+    currPosition[1] = pos.pieces(WHITE, BISHOP);
+    currPosition[2] = pos.pieces(WHITE, ROOK);
+    currPosition[3] = pos.pieces(WHITE, QUEEN);
+    currPosition[4] = pos.pieces(WHITE, KING);
+    currPosition[5] = pos.pieces(BLACK, KNIGHT);
+    currPosition[6] = pos.pieces(BLACK, BISHOP);
+    currPosition[7] = pos.pieces(BLACK, ROOK);
+    currPosition[8] = pos.pieces(BLACK, QUEEN);
+    currPosition[9] = pos.pieces(BLACK, KING);
+
+    if (ss->ply < 2)
+    {
+        ss->plan[0] = 0;
+        ss->plan[1] = 0;
+        ss->plan[2] = 0;
+        ss->plan[3] = 0;
+        ss->plan[4] = 0;
+        ss->plan[5] = 0;
+        ss->plan[6] = 0;
+        ss->plan[7] = 0;
+        ss->plan[8] = 0;
+        ss->plan[9] = 0;
+    }
+    else{
+        ss->plan[0] = (ss-2)->plan[0];
+        ss->plan[1] = (ss-2)->plan[1];
+        ss->plan[2] = (ss-2)->plan[2];
+        ss->plan[3] = (ss-2)->plan[3];
+        ss->plan[4] = (ss-2)->plan[4];
+        ss->plan[5] = (ss-2)->plan[5];
+        ss->plan[6] = (ss-2)->plan[6];
+        ss->plan[7] = (ss-2)->plan[7];
+        ss->plan[8] = (ss-2)->plan[8];
+        ss->plan[9] = (ss-2)->plan[9];
+    }
+
+    for ( int i = 0; i < 10; i++ )
+    {
+        int multiplier = 0;
+        if (i < 2)
+            multiplier = 3;
+        else if (i == 2 || i == 7)
+            multiplier = 5;
+        else if (i == 3 || i == 8)
+            multiplier = 8;
+        else if (i == 4 || i == 9)
+            multiplier = 10;
+
+        similarity += popcount( ss->plan[i] & currPosition[i] ) * multiplier;
+    }
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -983,6 +1042,7 @@ moves_loop: // When in check, search starts here
           continue;
 
       ss->moveCount = ++moveCount;
+      (ss+1)->planSet = false;
 
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
           sync_cout << "info depth " << depth
@@ -1183,6 +1243,9 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+
+          r -= similarity / 40;
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1305,6 +1368,33 @@ moves_loop: // When in check, search starts here
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
                   alpha = value;
+
+                  if ( (ss+1)->planSet )
+                  {
+                      ss->plan[0] = (ss-2)->plan[0];
+                      ss->plan[1] = (ss-2)->plan[1];
+                      ss->plan[2] = (ss-2)->plan[2];
+                      ss->plan[3] = (ss-2)->plan[3];
+                      ss->plan[4] = (ss-2)->plan[4];
+                      ss->plan[5] = (ss-2)->plan[5];
+                      ss->plan[6] = (ss-2)->plan[6];
+                      ss->plan[7] = (ss-2)->plan[7];
+                      ss->plan[8] = (ss-2)->plan[8];
+                      ss->plan[9] = (ss-2)->plan[9];
+                  }
+                  else
+                  {
+                      ss->plan[0] = currPosition[0];
+                      ss->plan[1] = currPosition[1];
+                      ss->plan[2] = currPosition[2];
+                      ss->plan[3] = currPosition[3];
+                      ss->plan[4] = currPosition[4];
+                      ss->plan[5] = currPosition[5];
+                      ss->plan[6] = currPosition[6];
+                      ss->plan[7] = currPosition[7];
+                      ss->plan[8] = currPosition[8];
+                      ss->plan[9] = currPosition[9];
+                  }
 
                   // Reduce other moves if we have found at least one score improvement
                   if (   depth > 2
@@ -1808,7 +1898,6 @@ moves_loop: // When in check, search starts here
 
     return best;
   }
-
 } // namespace
 
 

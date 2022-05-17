@@ -55,6 +55,8 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
+  bool planSet;
+  Bitboard plan[10];
 };
 
 
