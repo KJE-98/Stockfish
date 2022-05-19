@@ -655,6 +655,83 @@ namespace {
         ss->plan[9] = (ss-2)->plan[9];
     }
 
+    if (ss->ply == 6)
+    {
+        sync_cout << "board" << sync_endl;
+         sync_cout << (ss->plan[0] >> 0 & 1)
+                   << (ss->plan[0] >> 1 & 1)
+                   << (ss->plan[0] >> 2 & 1)
+                   << (ss->plan[0] >> 3 & 1)
+                   << (ss->plan[0] >> 4 & 1)
+                   << (ss->plan[0] >> 5 & 1)
+                   << (ss->plan[0] >> 6 & 1)
+                   << (ss->plan[0] >> 7 & 1) << sync_endl;
+
+         sync_cout << (ss->plan[0] >> 8 & 1)
+                   << (ss->plan[0] >> 9 & 1)
+                   << (ss->plan[0] >> 10 & 1)
+                   << (ss->plan[0] >> 11 & 1)
+                   << (ss->plan[0] >> 12 & 1)
+                   << (ss->plan[0] >> 13 & 1)
+                   << (ss->plan[0] >> 14 & 1)
+                   << (ss->plan[0] >> 15 & 1) << sync_endl;
+
+          sync_cout << (ss->plan[0] >> 16 & 1)
+                   << (ss->plan[0] >> 17 & 1)
+                   << (ss->plan[0] >> 18 & 1)
+                   << (ss->plan[0] >> 19 & 1)
+                   << (ss->plan[0] >> 20 & 1)
+                   << (ss->plan[0] >> 21 & 1)
+                   << (ss->plan[0] >> 22 & 1)
+                   << (ss->plan[0] >> 23 & 1) << sync_endl;
+
+         sync_cout << (ss->plan[0] >> 24 & 1)
+                   << (ss->plan[0] >> 25 & 1)
+                   << (ss->plan[0] >> 26 & 1)
+                   << (ss->plan[0] >> 27 & 1)
+                   << (ss->plan[0] >> 28 & 1)
+                   << (ss->plan[0] >> 29 & 1)
+                   << (ss->plan[0] >> 30 & 1)
+                   << (ss->plan[0] >> 31 & 1) << sync_endl;
+
+         sync_cout << (ss->plan[0] >> 32 & 1)
+                   << (ss->plan[0] >> 33 & 1)
+                   << (ss->plan[0] >> 34 & 1)
+                   << (ss->plan[0] >> 35 & 1)
+                   << (ss->plan[0] >> 36 & 1)
+                   << (ss->plan[0] >> 37 & 1)
+                   << (ss->plan[0] >> 38 & 1)
+                   << (ss->plan[0] >> 39 & 1) << sync_endl;
+
+         sync_cout << (ss->plan[0] >> 40 & 1)
+                   << (ss->plan[0] >> 41 & 1)
+                   << (ss->plan[0] >> 42 & 1)
+                   << (ss->plan[0] >> 43 & 1)
+                   << (ss->plan[0] >> 44 & 1)
+                   << (ss->plan[0] >> 45 & 1)
+                   << (ss->plan[0] >> 46 & 1)
+                   << (ss->plan[0] >> 47 & 1) << sync_endl;
+
+         sync_cout << (ss->plan[0] >> 48 & 1)
+                   << (ss->plan[0] >> 49 & 1)
+                   << (ss->plan[0] >> 50 & 1)
+                   << (ss->plan[0] >> 51 & 1)
+                   << (ss->plan[0] >> 52 & 1)
+                   << (ss->plan[0] >> 53 & 1)
+                   << (ss->plan[0] >> 54 & 1)
+                   << (ss->plan[0] >> 55 & 1) << sync_endl;
+
+         sync_cout << (ss->plan[0] >> 56 & 1)
+                   << (ss->plan[0] >> 57 & 1)
+                   << (ss->plan[0] >> 58 & 1)
+                   << (ss->plan[0] >> 59 & 1)
+                   << (ss->plan[0] >> 60 & 1)
+                   << (ss->plan[0] >> 61 & 1)
+                   << (ss->plan[0] >> 62 & 1)
+                   << (ss->plan[0] >> 63 & 1) << sync_endl;
+    }
+
+
     for ( int i = 0; i < 10; i++ )
     {
         int multiplier = 0;
@@ -1244,7 +1321,7 @@ moves_loop: // When in check, search starts here
               r++;
 
 
-          r -= similarity / 40;
+          r -= similarity / 10;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1371,16 +1448,18 @@ moves_loop: // When in check, search starts here
 
                   if ( (ss+1)->planSet )
                   {
-                      ss->plan[0] = (ss-2)->plan[0];
-                      ss->plan[1] = (ss-2)->plan[1];
-                      ss->plan[2] = (ss-2)->plan[2];
-                      ss->plan[3] = (ss-2)->plan[3];
-                      ss->plan[4] = (ss-2)->plan[4];
-                      ss->plan[5] = (ss-2)->plan[5];
-                      ss->plan[6] = (ss-2)->plan[6];
-                      ss->plan[7] = (ss-2)->plan[7];
-                      ss->plan[8] = (ss-2)->plan[8];
-                      ss->plan[9] = (ss-2)->plan[9];
+                      ss->plan[0] = (ss+1)->plan[0];
+                      ss->plan[1] = (ss+1)->plan[1];
+                      ss->plan[2] = (ss+1)->plan[2];
+                      ss->plan[3] = (ss+1)->plan[3];
+                      ss->plan[4] = (ss+1)->plan[4];
+                      ss->plan[5] = (ss+1)->plan[5];
+                      ss->plan[6] = (ss+1)->plan[6];
+                      ss->plan[7] = (ss+1)->plan[7];
+                      ss->plan[8] = (ss+1)->plan[8];
+                      ss->plan[9] = (ss+1)->plan[9];
+
+                      ss->planSet = true;
                   }
                   else
                   {
@@ -1394,6 +1473,8 @@ moves_loop: // When in check, search starts here
                       ss->plan[7] = currPosition[7];
                       ss->plan[8] = currPosition[8];
                       ss->plan[9] = currPosition[9];
+
+                      ss->planSet = true;
                   }
 
                   // Reduce other moves if we have found at least one score improvement
