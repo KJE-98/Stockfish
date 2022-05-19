@@ -663,9 +663,9 @@ namespace {
         else if (i == 2 || i == 7)
             multiplier = 5;
         else if (i == 3 || i == 8)
-            multiplier = 8;
+            multiplier = 7;
         else if (i == 4 || i == 9)
-            multiplier = 10;
+            multiplier = 8;
 
         similarity += popcount( ss->plan[i] & currPosition[i] ) * multiplier;
     }
@@ -1244,7 +1244,7 @@ moves_loop: // When in check, search starts here
               r++;
 
           if (thisThread->rootDepth > 10)
-              r -= similarity / 30;
+              r -= (similarity > 30) + (similarity > 50);
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
