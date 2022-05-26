@@ -1140,6 +1140,9 @@ moves_loop: // When in check, search starts here
 
       bool doDeeperSearch = false;
 
+      Value newAlpha = alpha;
+      bool useNewAlpha = false;
+
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
@@ -1203,11 +1206,26 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          if (PvNode && !rootNode && depth > 5 && newDepth - d > 1)
+          {
+              newAlpha = std::min(beta - 1, alpha);
+              d += 2;
 
-          // If the son is reduced and fails high it will be re-searched at full depth
-          doFullDepthSearch = value > alpha && d < newDepth;
-          doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
+              value =  -search<NonPV>(pos, ss+1, -(newAlpha+1), -newAlpha, d, true);
+
+              doFullDepthSearch = value > newAlpha && d < newDepth;
+              doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
+              useNewAlpha = true;
+          }
+          else
+          {
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+              // If the son is reduced and fails high it will be re-searched at full depth
+              doFullDepthSearch = value > alpha && d < newDepth;
+              doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
+          }
+
           didLMR = true;
       }
       else
@@ -1220,11 +1238,12 @@ moves_loop: // When in check, search starts here
       if (doFullDepthSearch)
       {
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          useNewAlpha = false;
 
           // If the move passed LMR update its stats
           if (didLMR)
           {
-              int bonus = value > alpha ?  stat_bonus(newDepth)
+              int bonus = value > ( useNewAlpha ? newAlpha : alpha ) ?  stat_bonus(newDepth)
                                         : -stat_bonus(newDepth);
 
               if (capture)
@@ -1237,13 +1256,15 @@ moves_loop: // When in check, search starts here
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
       // parent node fail low with value <= alpha and try another move.
-      if (PvNode && (moveCount == 1 || (value > alpha && (rootNode || value < beta))))
+      if (PvNode && (moveCount == 1 || (value > ( useNewAlpha ? newAlpha : alpha ) && (rootNode || value < beta))))
       {
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
           value = -search<PV>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false);
+
+          useNewAlpha = false;
       }
 
       // Step 19. Undo move
@@ -1291,7 +1312,7 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
-      if (value > bestValue)
+      if ( !useNewAlpha && value > bestValue)
       {
           bestValue = value;
 
