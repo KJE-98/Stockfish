@@ -1170,14 +1170,9 @@ moves_loop: // When in check, search starts here
           if (ttCapture)
               r++;
 
-          // Decrease reduction at PvNodes if bestvalue
-          // is vastly different from static evaluation
-          if (PvNode && !ss->inCheck && abs(ss->staticEval - bestValue) > 250)
-              r--;
-
-          // Decrease reduction for PvNodes based on depth
+          // Decrease reduction for PvNodes based on depth and bestMove
           if (PvNode)
-              r -= 1 + 15 / ( 3 + depth );
+              r -= 1 + 15 / ( 3 + depth ) + !bestMove;
 
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
@@ -1200,9 +1195,6 @@ moves_loop: // When in check, search starts here
                        : PvNode                    ? 1
                        : cutNode && moveCount <= 8 ? 1
                        :                             0;
-
-          if (PvNode && depth > 3)
-              r--;
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
