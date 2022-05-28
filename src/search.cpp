@@ -559,7 +559,7 @@ namespace {
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement, complexity;
+    int moveCount, captureCount, quietCount, improvement, complexity, bestValueCount;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -570,6 +570,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    bestValueCount     = 0;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1180,6 +1181,9 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+          if (!bestMove && bestValueCount > 2)
+              r--;
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1287,6 +1291,9 @@ moves_loop: // When in check, search starts here
               // move position in the list is preserved - just the PV is pushed up.
               rm.score = -VALUE_INFINITE;
       }
+
+      if ( value > alpha - 5 )
+           bestValueCount++;
 
       if (value > bestValue)
       {
