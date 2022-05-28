@@ -1206,12 +1206,11 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
-          if (PvNode && !rootNode && depth > 5 && newDepth - d > 1)
+          if (PvNode && bestMove)
           {
-              newAlpha = std::min(beta - 1, alpha);
-              d += 2;
+              newAlpha = std::min(beta - 1, alpha + 15);
 
-              value =  -search<NonPV>(pos, ss+1, -(newAlpha+1), -newAlpha, d, true);
+              value = -search<NonPV>(pos, ss+1, -(newAlpha+1), -newAlpha, d, true);
 
               doFullDepthSearch = value > newAlpha && d < newDepth;
               doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
@@ -1243,7 +1242,7 @@ moves_loop: // When in check, search starts here
           // If the move passed LMR update its stats
           if (didLMR)
           {
-              int bonus = value > ( useNewAlpha ? newAlpha : alpha ) ?  stat_bonus(newDepth)
+              int bonus = value > alpha ?  stat_bonus(newDepth)
                                         : -stat_bonus(newDepth);
 
               if (capture)
@@ -1251,6 +1250,7 @@ moves_loop: // When in check, search starts here
 
               update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
           }
+
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
@@ -1287,7 +1287,7 @@ moves_loop: // When in check, search starts here
           rm.averageScore = rm.averageScore != -VALUE_INFINITE ? (2 * value + rm.averageScore) / 3 : value;
 
           // PV move or new best move?
-          if (moveCount == 1 || value > alpha)
+          if (moveCount == 1 || value > (useNewAlpha ? newAlpha : alpha))
           {
               rm.score = value;
               rm.selDepth = thisThread->selDepth;
@@ -1326,13 +1326,6 @@ moves_loop: // When in check, search starts here
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
                   alpha = value;
-
-                  // Reduce other moves if we have found at least one score improvement
-                  if (   depth > 2
-                      && depth < 7
-                      && beta  <  VALUE_KNOWN_WIN
-                      && alpha > -VALUE_KNOWN_WIN)
-                     depth -= 1;
 
                   assert(depth > 0);
               }
