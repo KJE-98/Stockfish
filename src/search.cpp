@@ -1201,17 +1201,24 @@ moves_loop: // When in check, search starts here
                        : cutNode && moveCount <= 8 ? 1
                        :                             0;
 
-          if (PvNode && depth > 3)
-              r--;
-
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          if (PvNode && d < newDepth - 1){
+              Value newAlpha = std::max(alpha - 20, -VALUE_INFINITE);
+              value = -search<NonPV>(pos, ss+1, -(newAlpha+1), -newAlpha, d, true);
 
-          // If the son is reduced and fails high it will be re-searched at full depth
-          doFullDepthSearch = value > alpha && d < newDepth;
-          doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
-          didLMR = true;
+               // If the son is reduced and fails high it will be re-searched at full depth
+              doFullDepthSearch = value > newAlpha && d < newDepth;
+              doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
+              didLMR = true;
+          } else {
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+              // If the son is reduced and fails high it will be re-searched at full depth
+              doFullDepthSearch = value > alpha && d < newDepth;
+              doDeeperSearch = value > (alpha + 78 + 11 * (newDepth - d));
+              didLMR = true;
+          }
       }
       else
       {
