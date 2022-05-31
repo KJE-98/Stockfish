@@ -1181,7 +1181,7 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
-          if (!bestMove && bestValueCount > 2)
+          if (bestValueCount > 2)
               r--;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
@@ -1292,7 +1292,7 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
-      if ( value > alpha - 5 )
+      if ( value > alpha - 4 )
            bestValueCount++;
 
       if (value > bestValue)
