@@ -667,6 +667,10 @@ namespace {
         if (pos.rule50_count() < 90)
             return ttValue;
     }
+    bool iterativeDeepening = false;
+    if ( (!ss->ttHit || tte->depth() < depth / 3) && depth > 8 ) {
+        iterativeDeepening = true;
+    }
 
     // Step 5. Tablebases probe
     if (!rootNode && TB::Cardinality)
@@ -1136,6 +1140,7 @@ moves_loop: // When in check, search starts here
       pos.do_move(move, st, givesCheck);
 
       bool doDeeperSearch = false;
+      Depth lmrDepth = 0;
 
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
       // We use various heuristics for the sons of a node after the first son has
@@ -1198,7 +1203,11 @@ moves_loop: // When in check, search starts here
                        : cutNode && moveCount <= 8 ? 1
                        :                             0;
 
-          Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
+          Depth d = lmrDepth = std::clamp(newDepth - r, 1, newDepth + deeper);
+
+          if (iterativeDeepening && d > 8){
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d-4, true);
+          }
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
@@ -1216,6 +1225,10 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
+          if (iterativeDeepening && newDepth > 8 && lmrDepth < newDepth / 3){
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, (newDepth + doDeeperSearch) - 4, !cutNode);
+          }
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
 
           // If the move passed LMR update its stats
