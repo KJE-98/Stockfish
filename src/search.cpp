@@ -935,6 +935,22 @@ moves_loop: // When in check, search starts here
        )
         return probCutBeta;
 
+    int ttDepthDiff = (depth - tte->depth());
+    if (ss->ply > 6 && ss->ttHit && ttValue != VALUE_NONE && ttDepthDiff > 0 && ttDepthDiff < 11 && tte->depth() > 0)
+    {
+        int possibleChange = (10000/tte->depth()) - (10000/depth);
+        if (  (tte->bound() & BOUND_UPPER)
+            && ttValue < alpha - possibleChange )
+        {
+            return ttValue;
+        }
+        if (  (tte->bound() & BOUND_LOWER)
+            && ttValue > beta + possibleChange )
+        {
+            return ttValue;
+        }
+    }
+
 
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
                                           nullptr                   , (ss-4)->continuationHistory,
