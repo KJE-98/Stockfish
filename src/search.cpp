@@ -1212,7 +1212,7 @@ moves_loop: // When in check, search starts here
           doFullDepthSearch = !PvNode || moveCount > 1;
           didLMR = false;
       }
-
+      bool didFullDepth = false;
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
@@ -1229,6 +1229,7 @@ moves_loop: // When in check, search starts here
 
               update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
           }
+          didFullDepth = true;
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
@@ -1239,8 +1240,20 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
-          value = -search<PV>(pos, ss+1, -beta, -alpha,
-                              std::min(maxNextDepth, newDepth), false);
+          bool searchAgain = true;
+          Value betaValue;
+
+          if ( didFullDepth && value > (2 * alpha + beta) / 3)
+          {
+              betaValue = -search<PV>(pos, ss+1, -beta, -beta+1, newDepth, false);
+              searchAgain = betaValue < beta;
+              if (!searchAgain)
+                value = betaValue;
+          }
+
+          if (searchAgain)
+            value = -search<PV>(pos, ss+1, -beta, -alpha,
+                                 std::min(maxNextDepth, newDepth), false);
       }
 
       // Step 19. Undo move
