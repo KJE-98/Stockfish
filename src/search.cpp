@@ -1192,6 +1192,9 @@ moves_loop: // When in check, search starts here
                        : PvNode || cutNode         ? 1
                        :                             0;
 
+          if (PvNode && depth < 10)
+              r--;
+
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
