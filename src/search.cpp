@@ -557,7 +557,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
-    bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
+    bool capture, doFullDepthSearch, moveCountPruning, ttCapture, ttMoveExtended;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
 
@@ -570,6 +570,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ttMoveExtended     = false;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1078,6 +1079,7 @@ moves_loop: // When in check, search starts here
 
               if (value < singularBeta)
               {
+                  ttMoveExtended = true;
                   extension = 1;
 
                   // Avoid search explosion by limiting the number of double extensions
@@ -1301,7 +1303,8 @@ moves_loop: // When in check, search starts here
                   if (   depth > 2
                       && depth < 7
                       && beta  <  VALUE_KNOWN_WIN
-                      && alpha > -VALUE_KNOWN_WIN)
+                      && alpha > -VALUE_KNOWN_WIN
+                      && extension > 0)
                      depth -= 1;
 
                   assert(depth > 0);
