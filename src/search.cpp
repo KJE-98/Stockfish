@@ -121,6 +121,7 @@ namespace {
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus);
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
+  int sqrt100x(Depth x);
 
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
@@ -1069,8 +1070,8 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - depth - 20;
               Depth singularDepth = (depth - 1) / 2;
+              Value singularBeta = ttValue - (4 - ss->ply / 12) * depth;
 
               ss->excludedMove = move;
               value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
@@ -1801,6 +1802,12 @@ moves_loop: // When in check, search starts here
     return best;
   }
 
+  int sqrt100x(Depth x) {
+    if (x<30)
+      return sqrt100xArray[x];
+    else
+      return x+24;
+  }
 } // namespace
 
 

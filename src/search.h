@@ -109,6 +109,15 @@ extern LimitsType Limits;
 void init();
 void clear();
 
+const int sqrt100xArray[30] {
+  0, 10, 14, 17, 20,
+  22, 24, 26, 28, 30,
+  31, 33, 34, 36, 37,
+  38, 40, 41, 42, 43,
+  44, 45, 46, 47, 50,
+  51, 52, 53, 54, 55,
+};
+
 } // namespace Search
 
 } // namespace Stockfish
