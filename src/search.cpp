@@ -473,8 +473,10 @@ void Thread::search() {
           double bestMoveInstability = 1 + 1.7 * totBestMoveChanges / Threads.size();
           int complexity = mainThread->complexityAverage.value();
           double complexPosition = std::clamp(1.0 + (complexity - 326) / 1618.1, 0.5, 1.5);
+          double twoEqualMoves = ss->duplicates > 0 ? 1.3 : 1;
 
-          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition;
+
+          double totalTime = Time.optimum() * fallingEval * reduction * bestMoveInstability * complexPosition * twoEqualMoves;
 
           // Cap used time in case of a single legal move for a better viewer experience in tournaments
           // yielding correct scores and sufficiently fast moves.
@@ -571,6 +573,9 @@ namespace {
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
 
+    if (rootNode){
+        ss->duplicates = 0;
+    }
     // Check for the available remaining time
     if (thisThread == Threads.main())
         static_cast<MainThread*>(thisThread)->check_time();
@@ -1252,6 +1257,11 @@ moves_loop: // When in check, search starts here
                                     thisThread->rootMoves.end(), move);
 
           rm.averageScore = rm.averageScore != -VALUE_INFINITE ? (2 * value + rm.averageScore) / 3 : value;
+
+          if (value == alpha)
+              ss->duplicates++;
+          else if (value > alpha)
+              ss->duplicates = 0;
 
           // PV move or new best move?
           if (moveCount == 1 || value > alpha)
