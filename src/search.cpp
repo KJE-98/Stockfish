@@ -121,6 +121,7 @@ namespace {
   void update_quiet_stats(const Position& pos, Stack* ss, Move move, int bonus);
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
+  bool moves_do_commute(Move move1, Move  move2, Move move3);
 
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
@@ -1172,6 +1173,10 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+          if (depth < 5 && moves_do_commute((ss-2)->currentMove,(ss-1)->currentMove,move)){
+            r--;
+          }
+
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1795,6 +1800,16 @@ moves_loop: // When in check, search starts here
 
     return best;
   }
+
+  bool moves_do_commute(Move move1, Move  move2, Move move3) {
+
+      if (   to_sq(move1) != to_sq(move2)
+          && to_sq(move3) != to_sq(move2)
+          && to_sq(move2) != from_sq(move1)   ) {
+              return true;
+          }
+      return false;
+    }
 
 } // namespace
 
