@@ -122,6 +122,8 @@ namespace {
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
 
+  bool moves_do_commute(Move move1, Move  move2, Move move3);
+
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
   template<bool Root>
@@ -984,6 +986,16 @@ moves_loop: // When in check, search starts here
 
       ss->moveCount = ++moveCount;
 
+      bool shouldFailLow = false;
+      auto setOfKnownFailLows = (ss-1)->trackedFailLows.find((ss-1)->currentMove);
+
+      if (    setOfKnownFailLows != (ss-1)->trackedFailLows.end() ){
+          if ( setOfKnownFailLows->second.find(move) != setOfKnownFailLows->second.end() ) {
+              shouldFailLow = true;
+          }
+      }
+
+
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
           sync_cout << "info depth " << depth
                     << " currmove " << UCI::move(move, pos.is_chess960())
@@ -1285,6 +1297,9 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
+      if (shouldFailLow)
+        sync_cout << (value < alpha) << sync_endl;
+
       if (value > bestValue)
       {
           bestValue = value;
@@ -1311,6 +1326,12 @@ moves_loop: // When in check, search starts here
               }
               else
               {
+                  // if the last two moves plus the one that just failed high commute, remember that
+                  if ( ss->ply > 4 && moves_do_commute(move, (ss-1)->currentMove, (ss-2)->currentMove) )
+                  {
+                      (ss-2)->trackedFailLows[move].insert((ss-1)->currentMove);
+                  }
+
                   ss->cutoffCnt++;
                   assert(value >= beta); // Fail high
                   break;
@@ -1802,6 +1823,20 @@ moves_loop: // When in check, search starts here
     }
 
     return best;
+  }
+
+  bool moves_do_commute(Move move1, Move  move2, Move move3) {
+      unsigned  destination;
+      destination = ((1 << 6) - 1) << 0;
+
+      unsigned  initial;
+      initial = ((1 << 6) - 1) << 6;
+
+      if (   (move1 & destination) != (move2 & destination)
+          && (move3 & destination) != (move2 & destination) ) {
+              return true;
+          }
+      return false;
   }
 
 } // namespace
