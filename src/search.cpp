@@ -122,6 +122,8 @@ namespace {
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
 
+  bool moves_do_commute(Move move1, Move  move2, Move move3);
+
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
   template<bool Root>
@@ -526,6 +528,8 @@ namespace {
     constexpr bool rootNode = nodeType == Root;
     const Depth maxNextDepth = rootNode ? depth : depth + 1;
 
+    ss->pvNode = PvNode;
+
     // Check if we have an upcoming move which draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
     if (   !rootNode
@@ -610,6 +614,7 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->followUps.clear();
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -906,6 +911,38 @@ namespace {
                 }
             }
          ss->ttPv = ttPv;
+    }
+
+    if ( !(ss-2)->pvNode && ss->ply > 1){
+
+      std::unordered_map<Move, std::set<Move>>::iterator setOfFollowUpsIterator = (ss-2)->followUps.find((ss-2)->currentMove);
+
+      if (setOfFollowUpsIterator != (ss-2)->followUps.end()){
+        std::set<Move> setOfFollowUps = setOfFollowUpsIterator->second;
+        std::set<Move>::iterator iter = setOfFollowUps.begin();
+        if (setOfFollowUps.size()>2)
+            sync_cout << setOfFollowUps.size() << sync_endl;
+
+        /*
+        while (iter != setOfFollowUps.end()){
+            Move expectedReturnHigh = *iter;
+            Value expectedHighValue;
+            if (expectedReturnHigh != excludedMove && pos.pseudo_legal(expectedReturnHigh) && pos.legal(expectedReturnHigh)){
+
+                pos.do_move(expectedReturnHigh, st);
+                expectedHighValue = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha,
+                            expectedReturnHigh == ttMove ? depth : depth - 1, false);
+                pos.undo_move(expectedReturnHigh);
+
+                if (expectedHighValue > alpha)
+                    return expectedHighValue;
+            }
+            iter++;
+        }
+      } else {
+        //sync_cout << "empty" << sync_endl;
+      }
+      */
     }
 
     // Step 11. If the position is not in TT, decrease depth by 3.
@@ -1311,6 +1348,16 @@ moves_loop: // When in check, search starts here
               }
               else
               {
+                  // if the last two moves plus the one that just failed high commute, remember that
+                  if ( ss->ply > 4
+                      && moves_do_commute((ss-2)->currentMove, (ss-1)->currentMove, move)
+                      && !(ss-2)->pvNode
+                      && (ss-1)->currentMove != MOVE_NULL
+                      && (ss-2)->currentMove != MOVE_NULL)
+                  {
+                      (ss-2)->followUps[move].insert((ss-2)->currentMove);
+                  }
+
                   ss->cutoffCnt++;
                   assert(value >= beta); // Fail high
                   break;
@@ -1802,6 +1849,21 @@ moves_loop: // When in check, search starts here
     }
 
     return best;
+  }
+
+  bool moves_do_commute(Move move1, Move  move2, Move move3) {
+      unsigned  destination;
+      destination = ((1 << 6) - 1) << 0;
+
+      unsigned  initial;
+      initial = ((1 << 6) - 1) << 6;
+
+      if (   (move1 & destination) != (move2 & destination)
+          && (move3 & destination) != (move2 & destination)
+          && (move2 & destination) != (move1 & initial)   ) {
+              return true;
+          }
+      return false;
   }
 
 } // namespace
