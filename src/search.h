@@ -56,6 +56,8 @@ struct Stack {
   int doubleExtensions;
   int cutoffCnt;
   std::map<Move, std::set<Move>> trackedFailLows;
+  bool inDeeper;
+  bool pvNode;
 };
 
 

@@ -528,6 +528,8 @@ namespace {
     constexpr bool rootNode = nodeType == Root;
     const Depth maxNextDepth = rootNode ? depth : depth + 1;
 
+    ss->pvNode = PvNode;
+
     // Check if we have an upcoming move which draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
     if (   !rootNode
@@ -612,6 +614,8 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->inDeeper         = false;
+    ss->trackedFailLows.clear();
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -987,9 +991,9 @@ moves_loop: // When in check, search starts here
       ss->moveCount = ++moveCount;
 
       bool shouldFailLow = false;
-      auto setOfKnownFailLows = (ss-1)->trackedFailLows.find((ss-1)->currentMove);
 
-      if (    setOfKnownFailLows != (ss-1)->trackedFailLows.end() ){
+      auto setOfKnownFailLows = (ss-1)->trackedFailLows.find((ss-1)->currentMove);
+      if (    !(ss-1)->pvNode && setOfKnownFailLows != (ss-1)->trackedFailLows.end() ){
           if ( setOfKnownFailLows->second.find(move) != setOfKnownFailLows->second.end() ) {
               shouldFailLow = true;
           }
@@ -1150,6 +1154,10 @@ moves_loop: // When in check, search starts here
       // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
+      if (shouldFailLow && depth > 3) {
+          search<NonPV>(pos, ss+1, -(alpha+1), -alpha, 2, false);
+      }
+
       bool doDeeperSearch = false;
 
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
@@ -1209,7 +1217,9 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
+          ss->inDeeper = d >= newDepth;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          ss->inDeeper = false;
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1225,7 +1235,9 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
+          ss->inDeeper = true;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          ss->inDeeper = false;
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1297,9 +1309,6 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
-      if (shouldFailLow)
-        sync_cout << (value < alpha) << sync_endl;
-
       if (value > bestValue)
       {
           bestValue = value;
@@ -1327,7 +1336,8 @@ moves_loop: // When in check, search starts here
               else
               {
                   // if the last two moves plus the one that just failed high commute, remember that
-                  if ( ss->ply > 4 && moves_do_commute(move, (ss-1)->currentMove, (ss-2)->currentMove) )
+                  if ( ss->ply > 4 && moves_do_commute((ss-2)->currentMove, (ss-1)->currentMove, move)
+                      && ((ss-2)->inDeeper || (ss-1)->inDeeper) && !(ss-2)->pvNode)
                   {
                       (ss-2)->trackedFailLows[move].insert((ss-1)->currentMove);
                   }
@@ -1833,7 +1843,8 @@ moves_loop: // When in check, search starts here
       initial = ((1 << 6) - 1) << 6;
 
       if (   (move1 & destination) != (move2 & destination)
-          && (move3 & destination) != (move2 & destination) ) {
+          && (move3 & destination) != (move2 & destination)
+          && (move2 & destination) != (move1 & initial)   ) {
               return true;
           }
       return false;
