@@ -1014,9 +1014,6 @@ moves_loop: // When in check, search starts here
       if (!rootNode && !pos.legal(move))
           continue;
 
-      if (setOfKnownFailHighs.find(move) != setOfKnownFailHighs.end())
-          continue;
-
       ss->moveCount = ++moveCount;
 
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
