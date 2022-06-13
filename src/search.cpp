@@ -615,7 +615,8 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
     ss->inDeeper         = false;
-    ss->trackedFailLows.clear();
+    std::set<Move> setOfKnownFailHighs;
+    ss->trackedFailHighs.clear();
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -914,6 +915,31 @@ namespace {
          ss->ttPv = ttPv;
     }
 
+    if ( !(ss-2)->pvNode && ss->ply > 1){
+
+      setOfKnownFailHighs = (ss-2)->trackedFailHighs[(ss-2)->currentMove][(ss-1)->currentMove];
+
+      std::set<Move>::iterator iter = setOfKnownFailHighs.begin();
+      Value expectedHighValue;
+
+      while (iter != setOfKnownFailHighs.end()){
+        Move expectedReturnHigh = *iter;
+
+        if (expectedReturnHigh != excludedMove && pos.pseudo_legal(expectedReturnHigh) && pos.legal(expectedReturnHigh)){
+            pos.do_move(expectedReturnHigh, st);
+            expectedHighValue = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha,
+                            expectedReturnHigh == ttMove ? depth : depth - 1, false);
+            pos.undo_move(expectedReturnHigh);
+
+            if (expectedHighValue > alpha){
+              return expectedHighValue;
+            }
+        }
+
+        iter++;
+      }
+    }
+
     // Step 11. If the position is not in TT, decrease depth by 3.
     // Use qsearch if depth is equal or below zero (~4 Elo)
     if (    PvNode
@@ -988,17 +1014,10 @@ moves_loop: // When in check, search starts here
       if (!rootNode && !pos.legal(move))
           continue;
 
+      if (setOfKnownFailHighs.find(move) != setOfKnownFailHighs.end())
+          continue;
+
       ss->moveCount = ++moveCount;
-
-      bool shouldFailLow = false;
-
-      auto setOfKnownFailLows = (ss-1)->trackedFailLows.find((ss-1)->currentMove);
-      if (    !(ss-1)->pvNode && setOfKnownFailLows != (ss-1)->trackedFailLows.end() ){
-          if ( setOfKnownFailLows->second.find(move) != setOfKnownFailLows->second.end() ) {
-              shouldFailLow = true;
-          }
-      }
-
 
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
           sync_cout << "info depth " << depth
@@ -1154,9 +1173,9 @@ moves_loop: // When in check, search starts here
       // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
-      if (shouldFailLow && depth > 3) {
+      /*if (shouldFailLow && depth > 3) {
           search<NonPV>(pos, ss+1, -(alpha+1), -alpha, 2, false);
-      }
+      }*/
 
       bool doDeeperSearch = false;
 
@@ -1336,10 +1355,13 @@ moves_loop: // When in check, search starts here
               else
               {
                   // if the last two moves plus the one that just failed high commute, remember that
-                  if ( ss->ply > 4 && moves_do_commute((ss-2)->currentMove, (ss-1)->currentMove, move)
-                      && ((ss-2)->inDeeper || (ss-1)->inDeeper) && !(ss-2)->pvNode)
+                  if ( ss->ply > 4
+                      && moves_do_commute((ss-2)->currentMove, (ss-1)->currentMove, move)
+                      && !(ss-2)->pvNode
+                      && (ss-1)->currentMove != MOVE_NULL
+                      && (ss-2)->currentMove != MOVE_NULL)
                   {
-                      (ss-2)->trackedFailLows[move].insert((ss-1)->currentMove);
+                      (ss-2)->trackedFailHighs[move][(ss-1)->currentMove].insert((ss-2)->currentMove);
                   }
 
                   ss->cutoffCnt++;
