@@ -920,8 +920,6 @@ namespace {
       if (setOfFollowUpsIterator != (ss-2)->followUps.end()){
         std::set<Move> setOfFollowUps = setOfFollowUpsIterator->second;
         std::set<Move>::iterator iter = setOfFollowUps.begin();
-        if (setOfFollowUps.size()>2)
-            sync_cout << setOfFollowUps.size() << sync_endl;
 
         /*
         while (iter != setOfFollowUps.end()){
@@ -939,10 +937,10 @@ namespace {
             }
             iter++;
         }
+        */
       } else {
         //sync_cout << "empty" << sync_endl;
       }
-      */
     }
 
     // Step 11. If the position is not in TT, decrease depth by 3.
