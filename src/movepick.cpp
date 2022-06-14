@@ -61,9 +61,10 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Move cm,
-                                                             const Move* killers)
+                                                             const Move* killers,
+                                                             const Move suggestedMove)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d), suggestedMove(suggestedMove)
 {
   assert(d > 0);
 
@@ -79,7 +80,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d)
 {
   assert(d <= 0);
-
+  suggestedMove = MOVE_NONE;
   stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) +
           !(   ttm
             && (pos.checkers() || depth > DEPTH_QS_RECAPTURES || to_sq(ttm) == recaptureSquare)
@@ -92,6 +93,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, Depth d, const Cap
            : pos(p), captureHistory(cph), ttMove(ttm), threshold(th), depth(d)
 {
   assert(!pos.checkers());
+  suggestedMove = MOVE_NONE;
 
   stage = PROBCUT_TT + !(ttm && pos.capture(ttm)
                              && pos.pseudo_legal(ttm)
@@ -132,11 +134,15 @@ void MovePicker::score() {
   }
 
   for (auto& m : *this)
-      if constexpr (Type == CAPTURES)
+      if constexpr (Type == CAPTURES) {
           m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
-      else if constexpr (Type == QUIETS)
+          if (m == suggestedMove)
+              m.value += 10000;
+      }
+
+      else if constexpr (Type == QUIETS) {
           m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                    + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                    +     (*continuationHistory[1])[pos.moved_piece(m)][to_sq(m)]
@@ -148,6 +154,9 @@ void MovePicker::score() {
                           :                                         !(to_sq(m) & threatenedByPawn)  ? 15000
                           :                                                                           0)
                           :                                                                           0);
+          if (m == suggestedMove)
+              m.value += 50000;
+      }
 
       else // Type == EVASIONS
       {
@@ -158,6 +167,9 @@ void MovePicker::score() {
               m.value =      (*mainHistory)[pos.side_to_move()][from_to(m)]
                        + 2 * (*continuationHistory[0])[pos.moved_piece(m)][to_sq(m)]
                        - (1 << 28);
+
+          if (m == suggestedMove)
+              m.value += 10000;
       }
 }
 

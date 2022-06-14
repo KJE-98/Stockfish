@@ -557,7 +557,7 @@ namespace {
 
     TTEntry* tte;
     Key posKey;
-    Move ttMove, move, excludedMove, bestMove;
+    Move ttMove, move, excludedMove, bestMove, suggestedMove;
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, didLMR, priorCapture;
@@ -574,6 +574,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    suggestedMove      = MOVE_NONE;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -915,6 +916,9 @@ namespace {
          ss->ttPv = ttPv;
     }
 
+
+    suggestedMove = MOVE_NONE;
+
     if ( !(ss-2)->pvNode && ss->ply > 1){
 
       setOfKnownFailHighs = (ss-2)->trackedFailHighs[(ss-2)->currentMove][(ss-1)->currentMove];
@@ -928,11 +932,12 @@ namespace {
         if (expectedReturnHigh != excludedMove && pos.pseudo_legal(expectedReturnHigh) && pos.legal(expectedReturnHigh)){
             pos.do_move(expectedReturnHigh, st);
             expectedHighValue = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha,
-                            expectedReturnHigh == ttMove ? depth : depth - 1, false);
+                            2 * depth / 3, false);
             pos.undo_move(expectedReturnHigh);
 
             if (expectedHighValue > alpha){
-              return expectedHighValue;
+                suggestedMove = expectedReturnHigh;
+                break;
             }
         }
 
@@ -981,7 +986,8 @@ moves_loop: // When in check, search starts here
                                       &captureHistory,
                                       contHist,
                                       countermove,
-                                      ss->killers);
+                                      ss->killers,
+                                      suggestedMove);
 
     value = bestValue;
     moveCountPruning = false;
@@ -995,9 +1001,16 @@ moves_loop: // When in check, search starts here
 
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
-    while ((move = mp.next_move(moveCountPruning)) != MOVE_NONE)
+    //sync_cout << "entering" << sync_endl;
+    while (
+        (move = mp.next_move(moveCountPruning)) != MOVE_NONE
+        )
     {
+
       assert(is_ok(move));
+
+      bool suggested = move == suggestedMove;
+
 
       if (move == excludedMove)
           continue;
@@ -1032,6 +1045,8 @@ moves_loop: // When in check, search starts here
       newDepth = depth - 1;
 
       Value delta = beta - alpha;
+
+      //sync_cout << "checkpoint 1" << sync_endl;
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
@@ -1176,6 +1191,8 @@ moves_loop: // When in check, search starts here
 
       bool doDeeperSearch = false;
 
+      //sync_cout << "checkpoint 2" << sync_endl;
+
       // Step 17. Late moves reduction / extension (LMR, ~98 Elo)
       // We use various heuristics for the sons of a node after the first son has
       // been searched. In general we would like to reduce them, but there are many
@@ -1233,6 +1250,8 @@ moves_loop: // When in check, search starts here
 
           Depth d = std::clamp(newDepth - r, 1, newDepth + deeper);
 
+          //sync_cout << "checkpoint 3" << sync_endl;
+
           ss->inDeeper = d >= newDepth;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
           ss->inDeeper = false;
@@ -1251,9 +1270,11 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
+          //sync_cout << "checkpoint 4" << sync_endl;
           ss->inDeeper = true;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
           ss->inDeeper = false;
+          //sync_cout << "checkpoint 5" << sync_endl;
 
           // If the move passed LMR update its stats
           if (didLMR)
@@ -1266,7 +1287,9 @@ moves_loop: // When in check, search starts here
 
               update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
           }
+          //sync_cout << "checkpoint 6" << sync_endl;
       }
+      //sync_cout << "checkpoint 7" << sync_endl;
 
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the

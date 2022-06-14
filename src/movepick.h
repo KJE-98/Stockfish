@@ -123,7 +123,8 @@ public:
                                            const CapturePieceToHistory*,
                                            const PieceToHistory**,
                                            Move,
-                                           const Move*);
+                                           const Move*,
+                                           const Move suggestedMove);
   MovePicker(const Position&, Move, Depth, const ButterflyHistory*,
                                            const CapturePieceToHistory*,
                                            const PieceToHistory**,
@@ -137,6 +138,7 @@ private:
   ExtMove* begin() { return cur; }
   ExtMove* end() { return endMoves; }
 
+  Move suggestedMove;
   const Position& pos;
   const ButterflyHistory* mainHistory;
   const CapturePieceToHistory* captureHistory;
