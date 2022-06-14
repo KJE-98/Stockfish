@@ -139,7 +139,7 @@ void MovePicker::score() {
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
           if (m == suggestedMove)
-              m.value += 10000;
+              m.value += 10000 * 0;
       }
 
       else if constexpr (Type == QUIETS) {
@@ -155,7 +155,7 @@ void MovePicker::score() {
                           :                                                                           0)
                           :                                                                           0);
           if (m == suggestedMove)
-              m.value += 50000;
+              m.value += 50000 * 0;
       }
 
       else // Type == EVASIONS
@@ -169,7 +169,7 @@ void MovePicker::score() {
                        - (1 << 28);
 
           if (m == suggestedMove)
-              m.value += 10000;
+              m.value += 10000 * 0;
       }
 }
 

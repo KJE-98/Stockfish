@@ -926,7 +926,9 @@ namespace {
       std::set<Move>::iterator iter = setOfKnownFailHighs.begin();
       Value expectedHighValue;
 
-      while (iter != setOfKnownFailHighs.end()){
+
+      while ( false && iter != setOfKnownFailHighs.end()){
+
         Move expectedReturnHigh = *iter;
 
         if (expectedReturnHigh != excludedMove && pos.pseudo_legal(expectedReturnHigh) && pos.legal(expectedReturnHigh)){
