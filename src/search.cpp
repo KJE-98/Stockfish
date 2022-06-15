@@ -122,6 +122,8 @@ namespace {
   void update_all_stats(const Position& pos, Stack* ss, Move bestMove, Value bestValue, Value beta, Square prevSq,
                         Move* quietsSearched, int quietCount, Move* capturesSearched, int captureCount, Depth depth);
 
+  bool moves_do_commute(Move move1, Move  move2, Move move3);
+
   // perft() is our utility to verify move generation. All the leaf nodes up
   // to the given depth are generated and counted, and the sum is returned.
   template<bool Root>
@@ -1175,6 +1177,11 @@ moves_loop: // When in check, search starts here
           if (PvNode)
               r -= 1 + 15 / ( 3 + depth );
 
+          if (   (ss-1)->badResponses[(ss-1)->currentMovedPiece][prevSq][0] == move
+              || (ss-1)->badResponses[(ss-1)->currentMovedPiece][prevSq][1] == move   ) {
+            r += 5;
+          }
+
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
@@ -1314,7 +1321,16 @@ moves_loop: // When in check, search starts here
               {
                   if (moves_do_commute((ss-2)->currentMove,(ss-1)->currentMove,move))
                   {
-                    (ss-2)->badResponses[(ss-2)->currentMovedPiece][]
+                    Square destination = to_sq(move);
+                    if ((ss-2)->badResponses[movedPiece][destination][0] == MOVE_NONE)
+                    {
+                        (ss-2)->badResponses[movedPiece][destination][0] = (ss-1)->currentMove;
+                    }
+                    else if (   (ss-2)->badResponses[movedPiece][destination][1] == MOVE_NONE
+                             && (ss-2)->badResponses[movedPiece][destination][0] != (ss-1)->currentMove   )
+                    {
+                        (ss-2)->badResponses[movedPiece][destination][1] = (ss-1)->currentMove;
+                    }
                   }
                   ss->cutoffCnt++;
                   assert(value >= beta); // Fail high
@@ -1807,6 +1823,14 @@ moves_loop: // When in check, search starts here
     }
 
     return best;
+  }
+
+  bool moves_do_commute(Move move1, Move  move2, Move move3) {
+      return (
+        to_sq(move1) != to_sq(move2) &&
+        to_sq(move3) != to_sq(move2) &&
+        to_sq(move2) != from_sq(move1)
+      );
   }
 
 } // namespace

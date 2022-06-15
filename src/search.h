@@ -55,7 +55,7 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
-  CounterMoveHistory badResponses;
+  CounterMoveHistoryTwoMoves badResponses;
 };
 
 
