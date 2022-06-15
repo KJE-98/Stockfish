@@ -44,6 +44,7 @@ struct Stack {
   PieceToHistory* continuationHistory;
   int ply;
   Move currentMove;
+  int currentMovedPiece;
   Move excludedMove;
   Move killers[2];
   Value staticEval;
@@ -54,6 +55,7 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
+  CounterMoveHistory badResponses;
 };
 
 

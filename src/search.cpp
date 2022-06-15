@@ -610,6 +610,7 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->badResponses.fill(MOVE_NONE);
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -993,7 +994,7 @@ moves_loop: // When in check, search starts here
 
       extension = 0;
       capture = pos.capture(move);
-      movedPiece = pos.moved_piece(move);
+      ss->currentMovedPiece = movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
 
       // Calculate new depth for this move
@@ -1311,6 +1312,10 @@ moves_loop: // When in check, search starts here
               }
               else
               {
+                  if (moves_do_commute((ss-2)->currentMove,(ss-1)->currentMove,move))
+                  {
+                    (ss-2)->badResponses[(ss-2)->currentMovedPiece][]
+                  }
                   ss->cutoffCnt++;
                   assert(value >= beta); // Fail high
                   break;
