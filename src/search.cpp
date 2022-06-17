@@ -667,6 +667,23 @@ namespace {
             return ttValue;
     }
 
+    if (ss->ply > 7 && ss->ttHit && ttValue != VALUE_NONE && tte->depth() > 5)
+    {
+        int denom = std::max(1, tte->depth());
+        int possibleChange = 2000 / denom + 10 * std::max(1, depth - tte->depth());
+        if (  (tte->bound() & BOUND_UPPER)
+            && ttValue < alpha - possibleChange )
+        {
+            return ttValue;
+        }
+        if (  (tte->bound() & BOUND_LOWER)
+            && ttValue > beta + possibleChange )
+        {
+            return ttValue;
+        }
+    }
+
+
     // Step 5. Tablebases probe
     if (!rootNode && TB::Cardinality)
     {
