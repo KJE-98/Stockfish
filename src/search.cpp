@@ -560,6 +560,7 @@ namespace {
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
+    bool inHeuristicSearch;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -570,6 +571,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ss->tempoDisadvantage  = false;
+    ss->nodeType       = nodeType;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -610,6 +613,8 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+
+    ss->inHeuristicSearch = inHeuristicSearch = rootNode ? false : (ss-1)->inHeuristicSearch;
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -817,9 +822,9 @@ namespace {
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
 
         pos.do_null_move(st);
-
+        ss->inHeuristicSearch = true;
         Value nullValue = -search<NonPV>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
-
+        ss->inHeuristicSearch = inHeuristicSearch;
         pos.undo_null_move();
 
         if (nullValue >= beta)
@@ -838,7 +843,9 @@ namespace {
             thisThread->nmpMinPly = ss->ply + 3 * (depth-R) / 4;
             thisThread->nmpColor = us;
 
+            ss->inHeuristicSearch = true;
             Value v = search<NonPV>(pos, ss, beta-1, beta, depth-R, false);
+            ss->inHeuristicSearch = inHeuristicSearch;
 
             thisThread->nmpMinPly = 0;
 
@@ -846,6 +853,37 @@ namespace {
                 return nullValue;
         }
     }
+
+    // Reduced Null move search to find Tempo
+    if (   !ss->inHeuristicSearch
+        && !excludedMove
+        && !PvNode
+        && depth > 8
+        && (    (ss-1)->nodeType == PV
+             || (ss->ply > 1 && (ss-2)->nodeType == PV)
+             || (ss->ply > 1 && (ss-2)->tempoDisadvantage == true)
+             )
+        )
+    {
+
+        Depth d = depth / 3;
+        Value tempoSearchBeta = alpha - 300;
+
+        ss->currentMove = MOVE_NULL;
+        ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
+
+        pos.do_null_move(st);
+        ss->inHeuristicSearch = true;
+        Value nullValue = -search<NonPV>(pos, ss+1, -tempoSearchBeta, -tempoSearchBeta+1, d, !cutNode);
+        ss->inHeuristicSearch = inHeuristicSearch;
+        pos.undo_null_move();
+
+        if (nullValue < tempoSearchBeta)
+        {
+            ss->tempoDisadvantage = true;
+        }
+    }
+
 
     probCutBeta = beta + 179 - 46 * improving;
 
@@ -885,8 +923,11 @@ namespace {
                 value = -qsearch<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1);
 
                 // If the qsearch held, perform the regular search
-                if (value >= probCutBeta)
+                if (value >= probCutBeta){
+                    ss->inHeuristicSearch = true;
                     value = -search<NonPV>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
+                    ss->inHeuristicSearch = inHeuristicSearch;
+                }
 
                 pos.undo_move(move);
 
@@ -1067,7 +1108,9 @@ moves_loop: // When in check, search starts here
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
+              ss->inHeuristicSearch = true;
               value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+              ss->inHeuristicSearch = inHeuristicSearch;
               ss->excludedMove = MOVE_NONE;
 
               if (value < singularBeta)
@@ -1111,10 +1154,10 @@ moves_loop: // When in check, search starts here
                    && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
       }
-
+      extension += ss->tempoDisadvantage;
       // Add extension to new depth
       newDepth += extension;
-      ss->doubleExtensions = (ss-1)->doubleExtensions + (extension == 2);
+      ss->doubleExtensions = (ss-1)->doubleExtensions + (extension >= 2);
 
       // Speculative prefetch as early as possible
       prefetch(TT.first_entry(pos.key_after(move)));

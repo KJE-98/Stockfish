@@ -54,6 +54,9 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
+  bool inHeuristicSearch;
+  int nodeType;
+  bool tempoDisadvantage;
 };
 
 
