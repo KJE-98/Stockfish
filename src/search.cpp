@@ -560,6 +560,7 @@ namespace {
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
+    bool tempoDisadvantage;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -570,6 +571,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    tempoDisadvantage  = false;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -846,6 +848,32 @@ namespace {
                 return nullValue;
         }
     }
+
+    // Reduced Null move search to find Tempo
+    if (   PvNode
+        && (ss->ply == 0 || (ss-1)->currentMove != MOVE_NULL)
+        && !excludedMove)
+    {
+
+        // Null move dynamic reduction based on depth, eval and complexity of position
+        Depth d = depth / 3;
+        Value tempoSearchBeta = ss->staticEval - 300;
+
+        ss->currentMove = MOVE_NULL;
+        ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
+
+        pos.do_null_move(st);
+
+        Value nullValue = -search<NonPV>(pos, ss+1, -tempoSearchBeta, -tempoSearchBeta+1, d, !cutNode);
+
+        pos.undo_null_move();
+
+        if (nullValue < tempoSearchBeta)
+        {
+            tempoDisadvantage = true;
+        }
+    }
+
 
     probCutBeta = beta + 179 - 46 * improving;
 
@@ -1177,6 +1205,9 @@ moves_loop: // When in check, search starts here
 
           // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
           r -= ss->statScore / 15914;
+
+          if (tempoDisadvantage)
+              r -= 2;
 
           // In general we want to cap the LMR depth search at newDepth, but when
           // reduction is negative, we allow this move a limited search extension
