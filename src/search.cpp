@@ -1098,6 +1098,33 @@ moves_loop: // When in check, search starts here
                   extension = -1;
           }
 
+          // Tempo extension search
+          else if (   !PvNode
+                   &&  depth >= 6
+                   &&  tte->depth() >= depth - 5
+                   &&  move == ttMove
+                   && !excludedMove
+                   && pos.non_pawn_material(us)
+                   && (ss-1)->currentMove != MOVE_NULL
+                   && abs(alpha) < VALUE_KNOWN_WIN
+                   && eval > alpha
+                   && !ss->inCheck)
+          {
+              Value nullBeta = alpha - 10 * depth - 150;
+              Depth nullDepth = (depth - 1) / 3;
+              ss->currentMove = MOVE_NULL;
+              ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
+
+              pos.do_null_move(st);
+              Value nullValue = -search<NonPV>(pos, ss+1, -nullBeta, -nullBeta+1, nullDepth, !cutNode);
+              pos.undo_null_move();
+
+              if (nullValue < nullBeta)
+              {
+                  extension = 1;
+              }
+          }
+
           // Check extensions (~1 Elo)
           else if (   givesCheck
                    && depth > 9
