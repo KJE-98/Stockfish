@@ -570,6 +570,12 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    ss->singular       = false;
+
+    if (rootNode){
+        (ss-1)->singular = false;
+        (ss-2)->singular = false;
+    }
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -973,6 +979,7 @@ moves_loop: // When in check, search starts here
       if (!rootNode && !pos.legal(move))
           continue;
 
+      ss->singular = false;
       ss->moveCount = ++moveCount;
 
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
@@ -1072,11 +1079,12 @@ moves_loop: // When in check, search starts here
 
               if (value < singularBeta)
               {
+                  ss->singular = true;
                   extension = 1;
 
                   // Avoid search explosion by limiting the number of double extensions
                   if (  !PvNode
-                      && value < singularBeta - 26
+                      && ttCapture
                       && ss->doubleExtensions <= 8)
                       extension = 2;
               }
