@@ -647,10 +647,6 @@ namespace {
                 // Bonus for a quiet ttMove that fails high (~3 Elo)
                 if (!ttCapture)
                     update_quiet_stats(pos, ss, ttMove, stat_bonus(depth));
-
-                // Extra penalty for early quiet moves of the previous ply (~0 Elo)
-                if ((ss-1)->moveCount <= 2 && !priorCapture)
-                    update_continuation_histories(ss-1, pos.piece_on(prevSq), prevSq, -stat_bonus(depth + 1));
             }
             // Penalty for a quiet ttMove that fails low (~1 Elo)
             else if (!ttCapture)
@@ -915,21 +911,6 @@ namespace {
 
 moves_loop: // When in check, search starts here
 
-    // Step 12. A small Probcut idea, when we are in check (~0 Elo)
-    probCutBeta = beta + 481;
-    if (   ss->inCheck
-        && !PvNode
-        && depth >= 2
-        && ttCapture
-        && (tte->bound() & BOUND_LOWER)
-        && tte->depth() >= depth - 3
-        && ttValue >= probCutBeta
-        && abs(ttValue) <= VALUE_KNOWN_WIN
-        && abs(beta) <= VALUE_KNOWN_WIN
-       )
-        return probCutBeta;
-
-
     const PieceToHistory* contHist[] = { (ss-1)->continuationHistory, (ss-2)->continuationHistory,
                                           nullptr                   , (ss-4)->continuationHistory,
                                           nullptr                   , (ss-6)->continuationHistory };
@@ -1006,16 +987,6 @@ moves_loop: // When in check, search starts here
           if (   capture
               || givesCheck)
           {
-              // Futility pruning for captures (~0 Elo)
-              if (   !pos.empty(to_sq(move))
-                  && !givesCheck
-                  && !PvNode
-                  && lmrDepth < 6
-                  && !ss->inCheck
-                  && ss->staticEval + 281 + 179 * lmrDepth + PieceValue[EG][pos.piece_on(to_sq(move))]
-                   + captureHistory[movedPiece][to_sq(move)][type_of(pos.piece_on(to_sq(move)))] / 6 < alpha)
-                  continue;
-
               // SEE based pruning (~9 Elo)
               if (!pos.see_ge(move, Value(-203) * depth))
                   continue;
@@ -1102,13 +1073,6 @@ moves_loop: // When in check, search starts here
           else if (   givesCheck
                    && depth > 9
                    && abs(ss->staticEval) > 71)
-              extension = 1;
-
-          // Quiet ttMove extensions (~0 Elo)
-          else if (   PvNode
-                   && move == ttMove
-                   && move == ss->killers[0]
-                   && (*contHist[0])[movedPiece][to_sq(move)] >= 5491)
               extension = 1;
       }
 
