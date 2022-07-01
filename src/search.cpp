@@ -59,7 +59,7 @@ using namespace Search;
 namespace {
 
   // Different node types, used as a template parameter
-  enum NodeType { NonPV, PV, Root };
+  enum NodeType { NonPV, PV, Root, Tri, TriRoot };
 
   // Futility margin
   Value futility_margin(Depth d, bool improving) {
@@ -374,7 +374,11 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              if (rootDepth % 2
+              )
+                  bestValue = Stockfish::search<TriRoot>(rootPos, ss, alpha, beta, adjustedDepth, false);
+              else
+                  bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
 
               // Bring the best move to the front. It is critical that sorting
               // is done with a stable algorithm because all the values but the
@@ -523,7 +527,8 @@ namespace {
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
 
     constexpr bool PvNode = nodeType != NonPV;
-    constexpr bool rootNode = nodeType == Root;
+    constexpr bool rootNode = nodeType == Root || nodeType == TriRoot;
+    constexpr bool triSearch = nodeType == Tri || nodeType == TriRoot;
     const Depth maxNextDepth = rootNode ? depth : depth + 1;
 
     // Check if we have an upcoming move which draws by repetition, or
@@ -1222,7 +1227,7 @@ moves_loop: // When in check, search starts here
           (ss+1)->pv = pv;
           (ss+1)->pv[0] = MOVE_NONE;
 
-          value = -search<PV>(pos, ss+1, -beta, -alpha,
+          value = -search<triSearch ? Tri : PV>(pos, ss+1, -beta, -alpha,
                               std::min(maxNextDepth, newDepth), false);
       }
 
@@ -1284,7 +1289,7 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
-                  alpha = value;
+                  alpha = triSearch ? beta - 1 : value;
 
                   // Reduce other moves if we have found at least one score improvement
                   if (   depth > 2
