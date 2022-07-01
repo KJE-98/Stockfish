@@ -39,6 +39,10 @@ namespace Stockfish {
 
 namespace Search {
 
+  int LMR_ADJUSTMENT = 0;
+  int EXTENSION_ADJUSTMENT = 0;
+  TUNE(SetRange(-2, 2), LMR_ADJUSTMENT, EXTENSION_ADJUSTMENT);
+
   LimitsType Limits;
 }
 
@@ -374,7 +378,7 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              if (rootDepth % 3 == 0)
+              if (rootDepth % 2 == 0)
                   bestValue = Stockfish::search<TriRoot>(rootPos, ss, alpha, beta, adjustedDepth, false);
               else
                   bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
@@ -1067,7 +1071,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - 3 * depth;
+              Value singularBeta = ttValue - (3 + EXTENSION_ADJUSTMENT) * depth;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
@@ -1172,6 +1176,9 @@ moves_loop: // When in check, search starts here
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
+
+          if (triSearch && depth > 10)
+              r += LMR_ADJUSTMENT;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
@@ -1369,11 +1376,19 @@ moves_loop: // When in check, search starts here
         ss->ttPv = ss->ttPv || ((ss-1)->ttPv && depth > 3);
 
     // Write gathered information in transposition table
-    if (!excludedMove && !(rootNode && thisThread->pvIdx))
-        tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
-                  bestValue >= beta ? BOUND_LOWER :
-                  PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
-                  depth, bestMove, ss->staticEval);
+    if (!excludedMove && !(rootNode && thisThread->pvIdx)){
+        if (triSearch)
+            tte->save(posKey,
+                        value_to_tt( bestValue > alpha && bestValue < beta ? alpha : bestValue, ss->ply ),
+                        ss->ttPv,
+                        bestValue > alpha ? BOUND_LOWER : BOUND_UPPER,
+                        depth, bestMove, ss->staticEval);
+        else
+            tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
+                    bestValue >= beta ? BOUND_LOWER :
+                    PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
+                    depth, bestMove, ss->staticEval);
+    }
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
