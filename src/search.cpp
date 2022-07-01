@@ -374,8 +374,7 @@ void Thread::search() {
           while (true)
           {
               Depth adjustedDepth = std::max(1, rootDepth - failedHighCnt - searchAgainCounter);
-              if (rootDepth % 2
-              )
+              if (rootDepth % 3 == 0)
                   bestValue = Stockfish::search<TriRoot>(rootPos, ss, alpha, beta, adjustedDepth, false);
               else
                   bestValue = Stockfish::search<Root>(rootPos, ss, alpha, beta, adjustedDepth, false);
