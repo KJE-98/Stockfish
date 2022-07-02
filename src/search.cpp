@@ -559,7 +559,7 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
+    Value bestValue, value, ttValue, eval, maxValue, probCutBeta, originalAlpha;
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
@@ -574,6 +574,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    originalAlpha      = alpha;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1372,9 +1373,9 @@ moves_loop: // When in check, search starts here
     if (!excludedMove && !(rootNode && thisThread->pvIdx)){
         if (triSearch)
             tte->save(posKey,
-                        value_to_tt( bestValue > alpha && bestValue < beta ? alpha : bestValue, ss->ply ),
+                        value_to_tt( bestValue < beta && bestMove ? originalAlpha : bestValue, ss->ply ),
                         ss->ttPv,
-                        bestValue > alpha ? BOUND_LOWER : BOUND_UPPER,
+                        bestMove ? BOUND_LOWER : BOUND_UPPER,
                         depth, bestMove, ss->staticEval);
         else
             tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
