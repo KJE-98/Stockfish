@@ -39,10 +39,6 @@ namespace Stockfish {
 
 namespace Search {
 
-  int LMR_ADJUSTMENT = 0;
-  int EXTENSION_ADJUSTMENT = 0;
-  TUNE(SetRange(-2, 2), LMR_ADJUSTMENT, EXTENSION_ADJUSTMENT);
-
   LimitsType Limits;
 }
 
@@ -1071,7 +1067,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - (3 + EXTENSION_ADJUSTMENT) * depth;
+              Value singularBeta = ttValue - 3 * depth;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
@@ -1176,9 +1172,6 @@ moves_loop: // When in check, search starts here
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
-
-          if (triSearch && depth > 10)
-              r += LMR_ADJUSTMENT;
 
           ss->statScore =  thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
