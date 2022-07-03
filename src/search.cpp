@@ -1184,7 +1184,9 @@ moves_loop: // When in check, search starts here
           r -= ss->statScore / 15914;
 
           if (triSearch)
-              r -= 1;
+              r -= 2;
+          else if (PvNode)
+              r++;
 
           // In general we want to cap the LMR depth search at newDepth, but when
           // reduction is negative, we allow this move a limited search extension
