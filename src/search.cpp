@@ -561,7 +561,7 @@ namespace {
     bool givesCheck, improving, didLMR, priorCapture;
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
-    int moveCount, captureCount, quietCount, improvement, complexity, excludedCount;
+    int moveCount, captureCount, quietCount, improvement, complexity;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -572,7 +572,6 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
-    excludedCount      = 0;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -961,9 +960,12 @@ moves_loop: // When in check, search starts here
     {
       assert(is_ok(move));
 
-      if (move == excludedMove){
+      if (move == excludedMove)
           continue;
-      }
+
+      if (excludedMove && move == ss->killers[0])
+          continue;
+
 
       // At root obey the "searchmoves" option and skip moves not listed in Root
       // Move List. As a consequence any illegal move is also skipped. In MultiPV
@@ -976,11 +978,6 @@ moves_loop: // When in check, search starts here
       // Check for legality
       if (!rootNode && !pos.legal(move))
           continue;
-
-      if (excludedMove && excludedCount < 1){
-          excludedCount++;
-          continue;
-      }
 
       ss->moveCount = ++moveCount;
 
@@ -1072,7 +1069,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - 8 * depth;
+              Value singularBeta = ttValue - 4 * depth;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
