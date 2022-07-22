@@ -614,8 +614,8 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
-    mcFilter[0] = ss->ply > 2 ? (ss-1)->mcFilter[0] : 500;
-    mcFilter[1] = ss->ply > 2 ? (ss-1)->mcFilter[1] : 500;
+    mcFilter[0] = ss->ply > 2 ? (ss-1)->mcFilter[0] : 4096;
+    mcFilter[1] = ss->ply > 2 ? (ss-1)->mcFilter[1] : 4096;
 
     ss->mcFilter[0] = mcFilter[0];
     ss->mcFilter[1] = mcFilter[1];
@@ -1197,9 +1197,7 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
-          ss->mcFilter[!us] = ss->mcFilter[!us] / 2 + 1;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
-          ss->mcFilter[!us] = mcFilter[!us];
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1216,7 +1214,9 @@ moves_loop: // When in check, search starts here
       if (doFullDepthSearch)
       {
           // filter search
+          ss->mcFilter[!us] = PvNode && depth > 8 ? 3 : 4096;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          ss->mcFilter[!us] = mcFilter[!us];
 
           // If the move passed LMR update its stats
           if (didLMR)
