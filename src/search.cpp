@@ -1214,7 +1214,7 @@ moves_loop: // When in check, search starts here
       if (doFullDepthSearch)
       {
           // filter search
-          ss->mcFilter[!us] = PvNode ? 5 : 4096;
+          ss->mcFilter[!us] = PvNode ? 10 : 4096;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
           ss->mcFilter[!us] = mcFilter[!us];
 
