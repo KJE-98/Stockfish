@@ -614,8 +614,8 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
-    mcFilter[0] = ss->ply > 2 ? (ss-1)->mcFilter[0] : 1000;
-    mcFilter[1] = ss->ply > 2 ? (ss-1)->mcFilter[1] : 1000;
+    mcFilter[0] = ss->ply > 2 ? (ss-1)->mcFilter[0] : 4096;
+    mcFilter[1] = ss->ply > 2 ? (ss-1)->mcFilter[1] : 4096;
 
     ss->mcFilter[0] = mcFilter[0];
     ss->mcFilter[1] = mcFilter[1];
@@ -1002,8 +1002,9 @@ moves_loop: // When in check, search starts here
       Value delta = beta - alpha;
 
       // filter pruning
-      if (moveCount > mcFilter[us])
-          continue;
+      if (moveCount > mcFilter[us]){
+        break;
+      }
 
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
@@ -1213,12 +1214,9 @@ moves_loop: // When in check, search starts here
       if (doFullDepthSearch)
       {
           // filter search
-          ss->mcFilter[!us] = 20;
-          //value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          ss->mcFilter[!us] = PvNode ? 3 : 4096;
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
           ss->mcFilter[!us] = mcFilter[!us];
-
-          if (value > alpha)
-              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
 
           // If the move passed LMR update its stats
           if (didLMR)
