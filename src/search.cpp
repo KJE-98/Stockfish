@@ -562,6 +562,7 @@ namespace {
     bool capture, doFullDepthSearch, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
+    int mcFilter[2];
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -612,6 +613,12 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+
+    mcFilter[0] = ss->ply > 2 ? (ss-1)->mcFilter[0] : 1000;
+    mcFilter[1] = ss->ply > 2 ? (ss-1)->mcFilter[1] : 1000;
+
+    ss->mcFilter[0] = mcFilter[0];
+    ss->mcFilter[1] = mcFilter[1];
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -994,6 +1001,10 @@ moves_loop: // When in check, search starts here
 
       Value delta = beta - alpha;
 
+      // filter pruning
+      if (moveCount > mcFilter[us])
+          continue;
+
       // Step 14. Pruning at shallow depth (~98 Elo). Depth conditions are important for mate finding.
       if (  !rootNode
           && pos.non_pawn_material(us)
@@ -1201,7 +1212,13 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          // filter search
+          ss->mcFilter[!us] = 20;
+          //value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          ss->mcFilter[!us] = mcFilter[!us];
+
+          if (value > alpha)
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
 
           // If the move passed LMR update its stats
           if (didLMR)
