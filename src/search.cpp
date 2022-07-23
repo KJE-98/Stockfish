@@ -1067,7 +1067,7 @@ moves_loop: // When in check, search starts here
               &&  tte->depth() >= depth - 3)
           {
               int singularBetaConstant = (ss-1)->currentReduction > 3 ? 2 :
-                                         (ss-1)->currentReduction > 1 ? 3 : 4;
+                                         (ss-1)->currentReduction > 0 ? 3 : 4;
 
               Value singularBeta = ttValue - singularBetaConstant * depth;
               Depth singularDepth = (depth - 1) / 2;
