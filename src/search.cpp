@@ -612,6 +612,7 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+    ss->currentReduction = 0;
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -1065,7 +1066,10 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - 3 * depth;
+              int singularBetaConstant = ss->currentReduction > 3 ? 2 :
+                                         ss->currentReduction > 1 ? 3 : 4;
+
+              Value singularBeta = ttValue - singularBetaConstant * depth;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
@@ -1185,7 +1189,11 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
+          ss->currentReduction = newDepth - d;
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+          ss->currentReduction = 0;
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
