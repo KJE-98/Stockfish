@@ -1197,9 +1197,7 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
-          ss->mcFilter[!us] = 10;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
-          ss->mcFilter[!us] = mcFilter[!us];
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1215,7 +1213,10 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
+          // filter search
+          ss->mcFilter[!us] = PvNode ? 15 : 4096;
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+          ss->mcFilter[!us] = mcFilter[!us];
 
           // If the move passed LMR update its stats
           if (didLMR)
