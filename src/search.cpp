@@ -1185,7 +1185,7 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, PvNode ? true : !cutNode);
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
