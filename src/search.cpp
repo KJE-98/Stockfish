@@ -1052,7 +1052,7 @@ moves_loop: // When in check, search starts here
       // We take care to not overdo to avoid search getting stuck.
       if (ss->ply < thisThread->rootDepth * 2)
       {
-          if ((ss-1)->currentReduction > 0
+          if ((ss-1)->currentReduction > 1
                && move == ttMove)
           {
             extension = (ss-1)->currentReduction;
