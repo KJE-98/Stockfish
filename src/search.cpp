@@ -612,6 +612,7 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+
     ss->currentReduction = 0;
 
     // Initialize statScore to zero for the grandchildren of the current position.
@@ -1052,10 +1053,13 @@ moves_loop: // When in check, search starts here
       // We take care to not overdo to avoid search getting stuck.
       if (ss->ply < thisThread->rootDepth * 2)
       {
-          if ((ss-1)->currentReduction > 1
-               && move == ttMove)
+          if ((ss-4)->currentReduction > 0
+               && move == ttMove
+               && !excludedMove
+               && ss->ply > 3
+               && (ss-1)->moveCount > 12)
           {
-            extension = (ss-1)->currentReduction;
+            extension = (ss-4)->currentReduction;
           }
           // Singular extension search (~58 Elo). If all moves but one fail low on a
           // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
@@ -1192,7 +1196,7 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
-          ss->currentReduction = PvNode ? newDepth - d : 0;
+          ss->currentReduction = newDepth - d;
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
