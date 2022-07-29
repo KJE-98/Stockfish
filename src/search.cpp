@@ -613,6 +613,8 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
+    ss->totalReduction = PvNode ? 0 : (ss-1)->totalReduction;
+
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
     // starts with statScore = 0. Later grandchildren start with the last calculated
@@ -1183,9 +1185,20 @@ moves_loop: // When in check, search starts here
           // In general we want to cap the LMR depth search at newDepth, but when
           // reduction is negative, we allow this move a limited search extension
           // beyond the first move depth. This may lead to hidden double extensions.
+
+          ss->totalReduction += r - extension;
+
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+          ss->totalReduction -= r - extension;
+
+          if ( ss->totalReduction > 2 && value > alpha - 20 && value < alpha ){
+              ss->totalReduction -= 3;
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d + 3, true);
+              ss->totalReduction += 3;
+          }
 
           // If the son is reduced and fails high it will be re-searched at full depth
           doFullDepthSearch = value > alpha && d < newDepth;
@@ -1201,7 +1214,17 @@ moves_loop: // When in check, search starts here
       // Step 18. Full depth search when LMR is skipped or fails high
       if (doFullDepthSearch)
       {
+          ss->totalReduction += -extension - doDeeperSearch;
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + doDeeperSearch, !cutNode);
+
+          ss->totalReduction -= -extension - doDeeperSearch;
+
+          if ( ss->totalReduction > 2 && value > alpha - 20 && value < alpha ){
+              ss->totalReduction -= 3;
+              value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + 3, !cutNode);
+              ss->totalReduction += 3;
+          }
 
           // If the move passed LMR update its stats
           if (didLMR)
