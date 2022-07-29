@@ -1194,7 +1194,7 @@ moves_loop: // When in check, search starts here
 
           ss->totalReduction -= r - extension;
 
-          if ( ss->totalReduction > 2 && value > alpha - 20 && value < alpha ){
+          if ( ss->totalReduction > 2 && value > alpha && value < alpha + 20){
               ss->totalReduction -= 3;
               value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d + 3, true);
               ss->totalReduction += 3;
@@ -1220,7 +1220,7 @@ moves_loop: // When in check, search starts here
 
           ss->totalReduction -= -extension - doDeeperSearch;
 
-          if ( ss->totalReduction > 2 && value > alpha - 20 && value < alpha ){
+          if ( ss->totalReduction > 2 && value > alpha && value < alpha + 20 ){
               ss->totalReduction -= 3;
               value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth + 3, !cutNode);
               ss->totalReduction += 3;
