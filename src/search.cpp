@@ -1467,7 +1467,7 @@ moves_loop: // When in check, search starts here
                                              : -(ss-1)->staticEval;
 
         // Stand pat. Return immediately if static value is at least beta
-        if ( bestValue >= beta + (ss->ply) / 2 * (beta < VALUE_KNOWN_WIN) )
+        if ( bestValue >= beta + ss->ply * 3 / 4 * (beta < VALUE_KNOWN_WIN) )
         {
             // Save gathered info in transposition table
             if (!ss->ttHit)
