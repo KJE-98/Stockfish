@@ -1467,7 +1467,11 @@ moves_loop: // When in check, search starts here
                                              : -(ss-1)->staticEval;
 
         // Stand pat. Return immediately if static value is at least beta
-        if ( bestValue >= beta + ss->ply / 3 * (beta < VALUE_KNOWN_WIN) )
+        int standPatMargin = ss->ply / thisThread->rootDepth > 3 ? 0 :
+                             ss->ply / thisThread->rootDepth > 2 ? 10 :
+                             ss->ply / thisThread->rootDepth > 1 ? 15 : 20;
+
+        if ( bestValue >= beta + standPatMargin * (beta < VALUE_KNOWN_WIN) )
         {
             // Save gathered info in transposition table
             if (!ss->ttHit)
