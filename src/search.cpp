@@ -1467,7 +1467,7 @@ moves_loop: // When in check, search starts here
                                              : -(ss-1)->staticEval;
 
         // Stand pat. Return immediately if static value is at least beta
-        int standPatMargin = ss->ply / (depth - 1);
+        int standPatMargin = 2 * thisThread->rootDepth / (depth - 1);
 
 
         if ( bestValue >= beta - standPatMargin * (beta < VALUE_KNOWN_WIN) )
