@@ -1157,7 +1157,8 @@ moves_loop: // When in check, search starts here
 
           // Increase reduction for cut nodes (~3 Elo)
           if (cutNode)
-              r += std::min(moveCount / 4, 4);
+              r += moveCount < 5  ? 3 :
+                   moveCount < 9  ? 2 : 1;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
