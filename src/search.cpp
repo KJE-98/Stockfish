@@ -38,7 +38,7 @@
 namespace Stockfish {
 
 namespace Search {
-
+  int singularBetaDepthConstant = 3200;
   LimitsType Limits;
 }
 
@@ -562,6 +562,7 @@ namespace {
     bool capture, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
+    bool singExt;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -571,6 +572,8 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+
+    singExt = false;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -984,6 +987,8 @@ moves_loop: // When in check, search starts here
       movedPiece = pos.moved_piece(move);
       givesCheck = pos.gives_check(move);
 
+      singExt = false;
+
       // Calculate new depth for this move
       newDepth = depth - 1;
 
@@ -1060,7 +1065,7 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - 3 * depth;
+              Value singularBeta = ttValue - singularBetaDepthConstant * depth / 1000;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
@@ -1069,6 +1074,7 @@ moves_loop: // When in check, search starts here
 
               if (value < singularBeta)
               {
+                  singExt = true;
                   extension = 1;
                   singularQuietLMR = !ttCapture;
 
@@ -1263,6 +1269,9 @@ moves_loop: // When in check, search starts here
               // move position in the list is preserved - just the PV is pushed up.
               rm.score = -VALUE_INFINITE;
       }
+
+      if ( singExt && singularBetaDepthConstant > 1000 && singularBetaDepthConstant < 5000 )
+          singularBetaDepthConstant += (value > bestValue) * 2 - 1;
 
       if (value > bestValue)
       {
