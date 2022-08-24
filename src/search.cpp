@@ -1060,7 +1060,15 @@ moves_loop: // When in check, search starts here
               && (tte->bound() & BOUND_LOWER)
               &&  tte->depth() >= depth - 3)
           {
-              Value singularBeta = ttValue - 3 * depth;
+              ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
+                         + (*contHist[0])[movedPiece][to_sq(move)]
+                         + (*contHist[1])[movedPiece][to_sq(move)]
+                         + (*contHist[3])[movedPiece][to_sq(move)]
+                         - 4334;
+
+              int singularBetaAdjustment = std::clamp( (ss->statScore - 5000) / 25000, -1, 1 );
+
+              Value singularBeta = ttValue - ( 3 - singularBetaAdjustment ) * depth;
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
