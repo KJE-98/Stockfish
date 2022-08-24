@@ -1271,7 +1271,7 @@ moves_loop: // When in check, search starts here
       }
 
       if ( singExt && singularBetaDepthConstant > 1000 && singularBetaDepthConstant < 5000 )
-          singularBetaDepthConstant += (value > bestValue) * 2 - 1;
+          singularBetaDepthConstant += (value <= alpha) * 5 - 1;
 
       if (value > bestValue)
       {
