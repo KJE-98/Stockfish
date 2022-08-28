@@ -1173,7 +1173,7 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
-          if (bestOffset < -25)
+          if (bestOffset < -20)
             r++;
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
@@ -1275,7 +1275,7 @@ moves_loop: // When in check, search starts here
             bestOffset = (ss+1)->offset;
 
       if ( !bestMove )
-            ss->offset = std::min(5, moveCount) - bestOffset;
+            ss->offset = std::min(4, moveCount) - bestOffset;
 
       if (value > bestValue)
       {
@@ -1285,7 +1285,7 @@ moves_loop: // When in check, search starts here
           {
               bestMove = move;
 
-              ss->offset = std::min(5, moveCount) - (ss+1)->offset;
+              ss->offset = std::min(4, moveCount) - (ss+1)->offset;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
