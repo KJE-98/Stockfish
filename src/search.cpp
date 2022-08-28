@@ -559,7 +559,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, priorCapture, singularQuietLMR;
-    bool capture, moveCountPruning, ttCapture;
+    bool capture, moveCountPruning, ttCapture, easyCounter;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity, bestOffset;
 
@@ -571,6 +571,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    easyCounter        = false;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1173,7 +1174,7 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
-          if (bestOffset < -8)
+          if (easyCounter)
             r++;
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
@@ -1275,7 +1276,10 @@ moves_loop: // When in check, search starts here
             bestOffset = (ss+1)->offset;
 
       if ( !bestMove )
-            ss->offset = std::min(5, moveCount) - bestOffset * 9 / 10;
+            ss->offset = 3 * std::min(5, moveCount) - bestOffset * 7 / 8;
+
+      if ( bestOffset < -25 && moveCount < 5)
+            easyCounter = true;
 
       if (value > bestValue)
       {
@@ -1285,7 +1289,7 @@ moves_loop: // When in check, search starts here
           {
               bestMove = move;
 
-              ss->offset = std::min(5, moveCount) - (ss+1)->offset * 9 / 10;
+              ss->offset = 3 * std::min(5, moveCount) - (ss+1)->offset * 7 / 8;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
