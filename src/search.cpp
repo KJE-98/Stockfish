@@ -614,7 +614,7 @@ namespace {
 
     bestOffset           = 0;
     ss->offset           = 0;
-    (ss+1)->offset       = 0;
+    (ss+1)->offset       = 1;
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -1173,7 +1173,7 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
-          if (bestOffset < -2)
+          if (bestOffset < -80)
               r++;
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
@@ -1271,6 +1271,12 @@ moves_loop: // When in check, search starts here
               rm.score = -VALUE_INFINITE;
       }
 
+      if ( (ss+1)->offset < bestOffset )
+            bestOffset = (ss+1)->offset;
+
+      if (!bestMove)
+            ss->offset = moveCount - bestOffset;
+
       if (value > bestValue)
       {
           bestValue = value;
@@ -1280,9 +1286,6 @@ moves_loop: // When in check, search starts here
               bestMove = move;
 
               ss->offset = moveCount - (ss+1)->offset;
-
-              if ( (ss+1)->offset < bestOffset )
-                  bestOffset = (ss+1)->offset;
 
               if (PvNode && !rootNode) // Update pv even in fail-high case
                   update_pv(ss->pv, move, (ss+1)->pv);
