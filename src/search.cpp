@@ -913,6 +913,10 @@ namespace {
     if (depth <= 0)
         return qsearch<PV>(pos, ss, alpha, beta);
 
+    if (    ss->returnHighSafe
+         && ss->returnLowSafe)
+         depth--;
+
     if (    cutNode
         &&  depth >= 8
         && !ttMove)
@@ -1157,6 +1161,10 @@ moves_loop: // When in check, search starts here
           if ((ss-1)->moveCount > 7)
               r--;
 
+          // Increase reduction for cut nodes (~3 Elo)
+          if (cutNode)
+              r += 2;
+
           // Increase reduction if ttMove is a capture (~3 Elo)
           if (ttCapture)
               r++;
@@ -1172,9 +1180,6 @@ moves_loop: // When in check, search starts here
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
-
-          if (ss->returnHighSafe && ss->returnLowSafe)
-              r += 2;
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
