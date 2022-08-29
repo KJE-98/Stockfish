@@ -1181,8 +1181,8 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
-          if ( !safe )
-              r -= (depth > 10);
+          if (safe && depth < 8)
+              r += (moveCount > 3) + (moveCount > 8) + (moveCount > 15);
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
