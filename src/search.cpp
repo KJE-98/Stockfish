@@ -612,6 +612,14 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
 
+    if (PvNode) {
+        ss->returnHighSafe = false;
+        ss->returnLowSafe = false;
+    }
+
+    (ss+1)->returnHighSafe = ss->returnLowSafe;
+    (ss+1)->returnLowSafe = ss->returnHighSafe;
+
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
     // starts with statScore = 0. Later grandchildren start with the last calculated
@@ -1169,6 +1177,9 @@ moves_loop: // When in check, search starts here
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
               r++;
 
+          if (ss->returnHighSafe && ss->returnLowSafe)
+              r++;
+
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
                          + (*contHist[0])[movedPiece][to_sq(move)]
                          + (*contHist[1])[movedPiece][to_sq(move)]
@@ -1183,7 +1194,11 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
+          (ss+1)->returnLowSafe = true;
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+          (ss+1)->returnLowSafe = ss->returnHighSafe;
 
           // Do full depth search when reduced LMR search fails high
           if (value > alpha && d < newDepth)

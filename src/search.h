@@ -54,6 +54,8 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
+  bool returnLowSafe;
+  bool returnHighSafe;
 };
 
 
