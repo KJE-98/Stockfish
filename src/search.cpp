@@ -71,7 +71,7 @@ namespace {
 
   Depth reduction(bool i, Depth d, int mn, Value delta, Value rootDelta, bool safe) {
     int r = Reductions[d] * Reductions[mn];
-    return (r + 1463 - int(delta) * 1024 / int(rootDelta)) / (1024 - 200 * safe) + (!i && r > 1010);
+    return (r + 1463 - int(delta) * 1024 / int(rootDelta)) / (1024 - 100 * safe) + (!i && r > 1010);
   }
 
   constexpr int futility_move_count(bool improving, Depth depth) {
@@ -1052,7 +1052,7 @@ moves_loop: // When in check, search starts here
 
       // Step 15. Extensions (~66 Elo)
       // We take care to not overdo to avoid search getting stuck.
-      else if (ss->ply < thisThread->rootDepth * 2)
+      if (ss->ply < thisThread->rootDepth * 2)
       {
           // Singular extension search (~58 Elo). If all moves but one fail low on a
           // search of (alpha-s, beta-s), and just one fails high on (alpha, beta),
