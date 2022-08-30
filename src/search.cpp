@@ -562,6 +562,7 @@ namespace {
     bool capture, moveCountPruning, ttCapture;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
+    int movesSinceReduction;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -571,6 +572,10 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+
+    movesSinceReduction = PvNode ? 100 : (ss-1)->movesSinceReduction + 1;
+
+    ss->movesSinceReduction = movesSinceReduction;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -1158,7 +1163,7 @@ moves_loop: // When in check, search starts here
               r++;
 
           // Decrease reduction for PvNodes based on depth
-          if (PvNode)
+          if (PvNode || movesSinceReduction > 5)
               r -= 1 + 15 / (3 + depth);
 
           // Decrease reduction if ttMove has been singularly extended (~1 Elo)
@@ -1183,7 +1188,11 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
+          ss->movesSinceReduction = 0;
+
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+          ss->movesSinceReduction = movesSinceReduction;
 
           // Do full depth search when reduced LMR search fails high
           if (value > alpha && d < newDepth)
