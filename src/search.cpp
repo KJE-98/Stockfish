@@ -1194,7 +1194,8 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
-          (ss+1)->returnLowSafe = true;
+          if ( d < newDepth )
+              (ss+1)->returnLowSafe = true;
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
