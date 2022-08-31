@@ -1161,7 +1161,7 @@ moves_loop: // When in check, search starts here
               r--;
 
           // Increase reduction for cut nodes (~3 Elo)
-          if (cutNode)
+          if (cutNode || safe)
               r += 2;
 
           // Increase reduction if ttMove is a capture (~3 Elo)
@@ -1178,9 +1178,6 @@ moves_loop: // When in check, search starts here
 
           // Increase reduction if next ply has a lot of fail high else reset count to 0
           if ((ss+1)->cutoffCnt > 3 && !PvNode)
-              r++;
-
-          if (!cutNode && safe)
               r++;
 
           ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
