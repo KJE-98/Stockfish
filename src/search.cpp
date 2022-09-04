@@ -559,7 +559,7 @@ namespace {
     Depth extension, newDepth;
     Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
     bool givesCheck, improving, priorCapture, singularQuietLMR;
-    bool capture, moveCountPruning, ttCapture;
+    bool capture, moveCountPruning, ttCapture, lessCaptures;
     Piece movedPiece;
     int moveCount, captureCount, quietCount, improvement, complexity;
 
@@ -726,6 +726,7 @@ namespace {
     if (ss->inCheck)
     {
         // Skip early pruning when in check
+        lessCaptures = false;
         ss->staticEval = eval = VALUE_NONE;
         improving = false;
         improvement = 0;
@@ -763,6 +764,8 @@ namespace {
         int bonus = std::clamp(-16 * int((ss-1)->staticEval + ss->staticEval), -2000, 2000);
         thisThread->mainHistory[~us][from_to((ss-1)->currentMove)] << bonus;
     }
+
+    lessCaptures = !PvNode && ss->staticEval > alpha + 50;
 
     // Set up the improvement variable, which is the difference between the current
     // static evaluation and the previous static evaluation at our turn (if we were
@@ -937,7 +940,8 @@ moves_loop: // When in check, search starts here
                                       &captureHistory,
                                       contHist,
                                       countermove,
-                                      ss->killers);
+                                      ss->killers,
+                                      lessCaptures);
 
     value = bestValue;
     moveCountPruning = singularQuietLMR = false;
