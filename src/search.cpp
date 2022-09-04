@@ -765,7 +765,7 @@ namespace {
         thisThread->mainHistory[~us][from_to((ss-1)->currentMove)] << bonus;
     }
 
-    lessCaptures = !PvNode && ss->staticEval > alpha + 50;
+    lessCaptures = !PvNode && ss->staticEval > alpha + 150;
 
     // Set up the improvement variable, which is the difference between the current
     // static evaluation and the previous static evaluation at our turn (if we were
