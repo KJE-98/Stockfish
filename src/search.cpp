@@ -1280,11 +1280,13 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
-                  alpha = value;
-
                   if ( value < -80 && isSingular && value > alpha + 10 ) {
                     bestValue = value - 10;
                     alpha = value - 10;
+                  }
+                  else
+                  {
+                    alpha = value;
                   }
 
                   // Reduce other moves if we have found at least one score improvement
