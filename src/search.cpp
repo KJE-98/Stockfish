@@ -1042,6 +1042,8 @@ moves_loop: // When in check, search starts here
           }
       }
 
+      bool isSingular = false;
+
       // Step 15. Extensions (~66 Elo)
       // We take care to not overdo to avoid search getting stuck.
       if (ss->ply < thisThread->rootDepth * 2)
@@ -1071,6 +1073,7 @@ moves_loop: // When in check, search starts here
               {
                   extension = 1;
                   singularQuietLMR = !ttCapture;
+                  isSingular = true;
 
                   // Avoid search explosion by limiting the number of double extensions
                   if (  !PvNode
@@ -1278,6 +1281,11 @@ moves_loop: // When in check, search starts here
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
                   alpha = value;
+
+                  if ( value < -80 && isSingular && value > alpha + 10 ) {
+                    bestValue = value - 10;
+                    alpha = value - 10;
+                  }
 
                   // Reduce other moves if we have found at least one score improvement
                   if (   depth > 2
