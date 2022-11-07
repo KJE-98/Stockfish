@@ -128,7 +128,7 @@ void MovePicker::score() {
           m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
           if (depth > 0)
-              m.value -= (6000 * (depth - ttDepth)) / (depth + 3);
+              m.value -= (6000 * (depth - ttDepth)) / (depth + 5);
       }
 
       else if constexpr (Type == QUIETS)
