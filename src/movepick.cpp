@@ -57,13 +57,13 @@ namespace {
 /// ordering is at the current node.
 
 /// MovePicker constructor for the main search
-MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh,
+MovePicker::MovePicker(const Position& p, Move ttm, Depth d, Depth ttd, const ButterflyHistory* mh,
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Move cm,
                                                              const Move* killers)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d), ttDepth(ttd)
 {
   assert(d > 0);
 
@@ -84,6 +84,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
   stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) +
           !(   ttm
             && pos.pseudo_legal(ttm));
+  ttDepth = depth;
 }
 
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
@@ -96,6 +97,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Value th, Depth d, const Cap
   stage = PROBCUT_TT + !(ttm && pos.capture(ttm)
                              && pos.pseudo_legal(ttm)
                              && pos.see_ge(ttm, threshold));
+  ttDepth = depth;
 }
 
 /// MovePicker::score() assigns a numerical value to each move in a list, used
@@ -122,9 +124,12 @@ void MovePicker::score() {
   }
 
   for (auto& m : *this)
-      if constexpr (Type == CAPTURES)
+      if constexpr (Type == CAPTURES) {
           m.value =  6 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
                    +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
+          if (depth > 0)
+              m.value -= (6000 * (depth - ttDepth)) / (depth + 3);
+      }
 
       else if constexpr (Type == QUIETS)
           m.value =  2 * (*mainHistory)[pos.side_to_move()][from_to(m)]
