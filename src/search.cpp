@@ -1273,14 +1273,7 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
-                  alpha = value;
-
-                  // Reduce other moves if we have found at least one score improvement
-                  if (   depth > 1
-                      && depth < 6
-                      && beta  <  VALUE_KNOWN_WIN
-                      && alpha > -VALUE_KNOWN_WIN)
-                     depth -= 1;
+                  alpha = std::min( value + 5 * ( complexity > 100 ), VALUE_KNOWN_WIN );
 
                   assert(depth > 0);
               }
