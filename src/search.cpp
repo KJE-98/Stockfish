@@ -535,8 +535,16 @@ namespace {
     }
 
     // Dive into quiescence search when the depth reaches zero
-    if (depth <= 0)
-        return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+    if (depth <= 0){
+        Value qsValue = qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+
+        struct LeafInfo leafInfo = { qsValue - pos.psq_eg_stm() };
+        
+        ss->leafInfo = &leafInfo;
+        ss->hasLeafInfo = true;
+
+        return qsValue;
+    }
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -605,6 +613,9 @@ namespace {
     (ss+2)->cutoffCnt    = 0;
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = to_sq((ss-1)->currentMove);
+
+    ss->hasLeafInfo = false;
+    (ss+1)->hasLeafInfo = false;
 
     // Initialize statScore to zero for the grandchildren of the current position.
     // So statScore is shared between all grandchildren and only the first grandchild
@@ -963,6 +974,7 @@ moves_loop: // When in check, search starts here
           continue;
 
       ss->moveCount = ++moveCount;
+      (ss+1)->hasLeafInfo = false;
 
       if (rootNode && thisThread == Threads.main() && Time.elapsed() > 3000)
           sync_cout << "info depth " << depth
@@ -1156,7 +1168,10 @@ moves_loop: // When in check, search starts here
           if (singularQuietLMR)
               r--;
 
-          // Dicrease reduction if we move a threatened piece (~1 Elo)
+          if (PvNode && ss->hasLeafInfo)
+              sync_cout << "stuff " << ss->leafInfo->qsComplexity << sync_endl;
+
+          // Decrease reduction if we move a threatened piece (~1 Elo)
           if (   depth > 9
               && (mp.threatenedPieces & from_sq(move)))
               r--;
@@ -1202,6 +1217,8 @@ moves_loop: // When in check, search starts here
       {
               value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
       }
+
+      (ss+1)->hasLeafInfo = false;
 
       // For PV nodes only, do a full PV search on the first move or after a fail
       // high (in the latter case search only if value < beta), otherwise let the
@@ -1274,6 +1291,18 @@ moves_loop: // When in check, search starts here
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
                   alpha = value;
+
+                  if ( (ss+1)->hasLeafInfo )
+                  {
+                      ss->leafInfo = (ss+1)->leafInfo;
+                  }
+                  else
+                  {
+                      struct LeafInfo leafInfo = { value - pos.psq_eg_stm() };
+                      ss->leafInfo = &leafInfo;
+                  }
+
+                  ss->hasLeafInfo = true;
 
                   // Reduce other moves if we have found at least one score improvement
                   if (   depth > 1

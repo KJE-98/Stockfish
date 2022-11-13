@@ -36,6 +36,10 @@ namespace Search {
 /// shallower and deeper in the tree during the search. Each search thread has
 /// its own array of Stack objects, indexed by the current ply.
 
+struct LeafInfo {
+  int qsComplexity;
+};
+
 struct Stack {
   Move* pv;
   PieceToHistory* continuationHistory;
@@ -51,8 +55,10 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
-};
 
+  LeafInfo* leafInfo;
+  bool hasLeafInfo;
+};
 
 /// RootMove struct is used for moves at the root of the tree. For each root move
 /// we store a score and a PV (really a refutation in the case of moves which
