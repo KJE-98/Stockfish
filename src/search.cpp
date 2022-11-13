@@ -538,12 +538,14 @@ namespace {
     if (depth <= 0){
         Value qSearchValue = qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
 
-        Value difference = qSearchValue + (ss-1)->staticEval;
+        Value estimate = (ss-1)->inCheck ? (ss-2)->staticEval : -(ss-1)->staticEval;
+        Value difference = qSearchValue - estimate;
 
-        if (difference > -300 && difference < 300)
+        if (difference > -300 && difference < 300 )
             return qSearchValue;
-        else
+        else {
             depth = 2;
+        }
     }
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
