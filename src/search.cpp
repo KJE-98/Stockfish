@@ -535,8 +535,16 @@ namespace {
     }
 
     // Dive into quiescence search when the depth reaches zero
-    if (depth <= 0)
-        return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+    if (depth <= 0){
+        Value qSearchValue = qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+
+        Value difference = qSearchValue + (ss-1)->staticEval;
+
+        if (difference > -300 && difference < 300)
+            return qSearchValue;
+        else
+            depth = 2;
+    }
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
