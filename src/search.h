@@ -58,6 +58,7 @@ struct Stack {
 
   LeafInfo* leafInfo;
   bool hasLeafInfo;
+  int qsComplexity;
 };
 
 /// RootMove struct is used for moves at the root of the tree. For each root move

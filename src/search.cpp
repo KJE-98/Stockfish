@@ -538,9 +538,11 @@ namespace {
     if (depth <= 0){
         Value qsValue = qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
 
-        struct LeafInfo leafInfo = { qsValue - pos.psq_eg_stm() };
+        //struct LeafInfo leafInfo = { qsValue - pos.psq_eg_stm() };
         
-        ss->leafInfo = &leafInfo;
+        //ss->leafInfo = &leafInfo;
+
+        ss->qsComplexity = qsValue - pos.psq_eg_stm(); 
         ss->hasLeafInfo = true;
 
         return qsValue;
@@ -1169,7 +1171,7 @@ moves_loop: // When in check, search starts here
               r--;
 
           if (PvNode && ss->hasLeafInfo)
-              sync_cout << "stuff " << ss->leafInfo->qsComplexity << sync_endl;
+              r -= (ss->qsComplexity > 300 || ss->qsComplexity < -300);
 
           // Decrease reduction if we move a threatened piece (~1 Elo)
           if (   depth > 9
@@ -1294,12 +1296,15 @@ moves_loop: // When in check, search starts here
 
                   if ( (ss+1)->hasLeafInfo )
                   {
-                      ss->leafInfo = (ss+1)->leafInfo;
+                      //ss->leafInfo = (ss+1)->leafInfo;
+                      ss->qsComplexity = (ss+1)->qsComplexity;
                   }
                   else
                   {
-                      struct LeafInfo leafInfo = { value - pos.psq_eg_stm() };
-                      ss->leafInfo = &leafInfo;
+                      //struct LeafInfo leafInfo = { value - pos.psq_eg_stm() };
+                      //ss->leafInfo = &leafInfo;
+
+                      ss->qsComplexity = value - pos.psq_eg_stm(); 
                   }
 
                   ss->hasLeafInfo = true;
