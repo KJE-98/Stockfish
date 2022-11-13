@@ -1171,7 +1171,6 @@ moves_loop: // When in check, search starts here
               r--;
 
           if (PvNode && ss->hasLeafInfo && ss->qsComplexity > 120 ) {
-            sync_cout << ss->qsComplexity << sync_endl;
             r--;
           }
 
