@@ -1170,8 +1170,10 @@ moves_loop: // When in check, search starts here
           if (singularQuietLMR)
               r--;
 
-          if (PvNode && ss->hasLeafInfo)
-              r -= (ss->qsComplexity > 300 || ss->qsComplexity < -300);
+          if (PvNode && ss->hasLeafInfo && ss->qsComplexity > 120 ) {
+            sync_cout << ss->qsComplexity << sync_endl;
+            r--;
+          }
 
           // Decrease reduction if we move a threatened piece (~1 Elo)
           if (   depth > 9
@@ -1297,7 +1299,7 @@ moves_loop: // When in check, search starts here
                   if ( (ss+1)->hasLeafInfo )
                   {
                       //ss->leafInfo = (ss+1)->leafInfo;
-                      ss->qsComplexity = (ss+1)->qsComplexity;
+                      ss->qsComplexity = -(ss+1)->qsComplexity;
                   }
                   else
                   {
