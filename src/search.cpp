@@ -1273,7 +1273,7 @@ moves_loop: // When in check, search starts here
 
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
               {
-                  alpha = std::min( value + 5 * ( complexity > 100 ) + 5 * ( complexity > 250 ), VALUE_KNOWN_WIN );
+                  alpha = std::min( value + 5, VALUE_KNOWN_WIN );
                   
                   if (alpha > beta - 1)
                       alpha = beta - 1;
