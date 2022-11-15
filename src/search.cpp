@@ -42,7 +42,8 @@ namespace Search {
   LimitsType Limits;
   int leafComp1 = 50;
   int leafComp2 = 150;
-  TUNE(leafComp1, leafComp2);
+  TUNE(SetRange(-100,150), leafComp1);
+  TUNE(leafComp2);
 }
 
 namespace Tablebases {
