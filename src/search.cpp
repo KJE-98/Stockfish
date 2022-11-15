@@ -1170,8 +1170,8 @@ moves_loop: // When in check, search starts here
           if (singularQuietLMR)
               r--;
 
-          if (PvNode && ss->hasLeafInfo && ss->qsComplexity > 120 ) {
-            r--;
+          if (PvNode && ss->hasLeafInfo ) {
+            r += 1 - (ss->qsComplexity > 240) - (ss->qsComplexity > 110);
           }
 
           // Decrease reduction if we move a threatened piece (~1 Elo)
