@@ -1171,7 +1171,7 @@ moves_loop: // When in check, search starts here
               r--;
 
           if (PvNode && ss->hasLeafInfo ) {
-            r += 1 - (ss->qsComplexity > 130) - (ss->qsComplexity > 270);
+            r += 1 - (ss->qsComplexity > 90) - (ss->qsComplexity > 210);
           }
 
           // Decrease reduction if we move a threatened piece (~1 Elo)
