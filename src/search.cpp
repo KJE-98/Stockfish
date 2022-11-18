@@ -40,10 +40,6 @@ namespace Stockfish {
 namespace Search {
 
   LimitsType Limits;
-  int leafComp1 = 50;
-  int leafComp2 = 150;
-  TUNE(SetRange(-100,150), leafComp1);
-  TUNE(leafComp2);
 }
 
 namespace Tablebases {
@@ -1175,7 +1171,7 @@ moves_loop: // When in check, search starts here
               r--;
 
           if (PvNode && ss->hasLeafInfo ) {
-            r += 1 - (ss->qsComplexity > leafComp1) - (ss->qsComplexity > leafComp2);
+            r += 1 - (ss->qsComplexity > -50) - (ss->qsComplexity > 250);
           }
 
           // Decrease reduction if we move a threatened piece (~1 Elo)
