@@ -1163,7 +1163,7 @@ moves_loop: // When in check, search starts here
                      + (*contHist[3])[movedPiece][to_sq(move)]
                      - 4433;
 
-      ss->statScore = ( ss->statScore * (60 - pos.rule50_count()) ) / 60;
+      ss->statScore = ( ss->statScore * (150 - pos.rule50_count()) ) / 150;
 
       // Decrease/increase reduction for moves with a good/bad history (~30 Elo)
       r -= ss->statScore / (13000 + 4152 * (depth > 7 && depth < 19));
