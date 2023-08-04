@@ -1136,6 +1136,9 @@ moves_loop: // When in check, search starts here
       // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
+      if ( newDepth > 5 )
+          update_continuation_histories(ss, movedPiece, to_sq(move), stat_bonus(newDepth/4));
+
       // Decrease reduction if position is or has been on the PV
       // and node is not likely to fail low. (~3 Elo)
       // Decrease further on cutNodes. (~1 Elo)
