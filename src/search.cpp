@@ -41,6 +41,7 @@ namespace Stockfish {
 namespace Search {
 
   LimitsType Limits;
+  int historiesWeight = 1000;
 }
 
 namespace Tablebases {
@@ -1136,9 +1137,6 @@ moves_loop: // When in check, search starts here
       // Step 16. Make the move
       pos.do_move(move, st, givesCheck);
 
-      if ( newDepth > 4 )
-          update_continuation_histories(ss, movedPiece, to_sq(move), stat_bonus(newDepth) / 5);
-
       // Decrease reduction if position is or has been on the PV
       // and node is not likely to fail low. (~3 Elo)
       // Decrease further on cutNodes. (~1 Elo)
@@ -1180,7 +1178,11 @@ moves_loop: // When in check, search starts here
                      - 4006;
 
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
-      r -= ss->statScore / (11124 + 4740 * (depth > 5 && depth < 22));
+      int statScoreBonus = ss->statScore / (11124 + 4740 * (depth > 5 && depth < 22));
+
+      Depth historiesReduction = statScoreBonus * historiesWeight / 1000;
+
+      r -= historiesReduction;
 
       // Step 17. Late moves reduction / extension (LMR, ~117 Elo)
       // We use various heuristics for the sons of a node after the first son has
@@ -1220,6 +1222,13 @@ moves_loop: // When in check, search starts here
                                          :  0;
 
               update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
+
+              int statScoreWasRight = bonus > 0 && historiesReduction < 0   ? 1
+                                    : bonus < 0 && historiesReduction > 0   ? 1
+                                    : bonus == 0 || historiesReduction == 0 ? 0
+                                                                        : -1;
+
+              historiesWeight += 15 * statScoreWasRight + ( historiesWeight < 1000 ) * 4 - 2;
           }
       }
 
