@@ -1212,7 +1212,7 @@ moves_loop: // When in check, search starts here
               if (newDepth > d)
                   value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
 
-              int bonus = value <= alpha ? -std::min(300 * d - 400, 1000)
+              int bonus = value <= alpha ? -stat_bonus(newDepth) * 4 / 5
                         : value >= beta  ?  stat_bonus(newDepth)
                                          :  0;
 
