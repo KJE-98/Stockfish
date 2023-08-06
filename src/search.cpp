@@ -41,7 +41,9 @@ namespace Stockfish {
 namespace Search {
 
   LimitsType Limits;
-  int historiesWeight = 10000;
+  int correct = 0;
+  int wrong = 0;
+  int weight = 0;
 }
 
 namespace Tablebases {
@@ -1178,11 +1180,9 @@ moves_loop: // When in check, search starts here
                      - 4006;
 
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
-      int statScoreBonus = ss->statScore / (11124 + 4740 * (depth > 5 && depth < 22));
-
-      Depth historiesReduction = statScoreBonus * historiesWeight / 10000;
-
-      r -= historiesReduction;
+      int statScoreBonus = ss->statScore;
+      
+      r -= statScoreBonus / (11124 + 4740 * (depth > 5 && depth < 22));
 
       // Step 17. Late moves reduction / extension (LMR, ~117 Elo)
       // We use various heuristics for the sons of a node after the first son has
@@ -1201,13 +1201,17 @@ moves_loop: // When in check, search starts here
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
-          int statScoreWasRight = value > alpha && historiesReduction < 0   ? 20
-                                : value < alpha && historiesReduction < 0  ? -2
+          int statScoreWasRight = value > alpha && statScoreBonus < 0  ? 1
+                                : value < alpha && statScoreBonus < 0  ? -1
                                 : 0;
 
-          historiesWeight += statScoreWasRight;
-          historiesWeight += ( historiesWeight < 10000 ) + ( historiesWeight < 7000 );
-          historiesWeight -= ( historiesWeight > 10000 ) + ( historiesWeight > 13000) * 5;
+          weight += statScoreWasRight;
+
+          correct += statScoreWasRight == 1;
+          wrong += statScoreWasRight == -1;
+              
+          if (rootNode && depth > 15)
+              sync_cout << weight << "::" << correct << "::" << wrong << sync_endl;
 
           // Do a full-depth search when reduced LMR search fails high
           if (value > alpha && d < newDepth)
@@ -1229,8 +1233,7 @@ moves_loop: // When in check, search starts here
                         : value >= beta  ?  stat_bonus(newDepth)
                                          :  0;
 
-              update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
-                                  
+              update_continuation_histories(ss, movedPiece, to_sq(move), bonus);                 
           }
       }
 
