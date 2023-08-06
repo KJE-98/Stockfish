@@ -41,7 +41,7 @@ namespace Stockfish {
 namespace Search {
 
   LimitsType Limits;
-  int historiesWeight = 1000;
+  int historiesWeight = 10000;
 }
 
 namespace Tablebases {
@@ -1180,7 +1180,7 @@ moves_loop: // When in check, search starts here
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
       int statScoreBonus = ss->statScore / (11124 + 4740 * (depth > 5 && depth < 22));
 
-      Depth historiesReduction = statScoreBonus * historiesWeight / 1000;
+      Depth historiesReduction = statScoreBonus * historiesWeight / 10000;
 
       r -= historiesReduction;
 
@@ -1200,6 +1200,14 @@ moves_loop: // When in check, search starts here
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+
+          int statScoreWasRight = value > alpha && historiesReduction < 0   ? 20
+                                : value < alpha && historiesReduction < 0  ? -2
+                                : 0;
+
+          historiesWeight += statScoreWasRight;
+          historiesWeight += ( historiesWeight < 10000 ) + ( historiesWeight < 7000 );
+          historiesWeight -= ( historiesWeight > 10000 ) + ( historiesWeight > 13000) * 5;
 
           // Do a full-depth search when reduced LMR search fails high
           if (value > alpha && d < newDepth)
@@ -1222,13 +1230,7 @@ moves_loop: // When in check, search starts here
                                          :  0;
 
               update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
-
-              int statScoreWasRight = bonus > 0 && historiesReduction < 0   ? 1
-                                    : bonus < 0 && historiesReduction > 0   ? 1
-                                    : bonus == 0 || historiesReduction == 0 ? 0
-                                                                        : -1;
-
-              historiesWeight += 15 * statScoreWasRight + ( historiesWeight < 1000 ) * 4 - 2;
+                                  
           }
       }
 
