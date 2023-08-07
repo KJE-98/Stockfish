@@ -41,8 +41,6 @@ namespace Stockfish {
 namespace Search {
 
   LimitsType Limits;
-  int correct = 0;
-  int wrong = 0;
   int weight = 0;
 }
 
@@ -1183,7 +1181,7 @@ moves_loop: // When in check, search starts here
       int statScoreBonus = ss->statScore;
 
       if (statScoreBonus > 0)
-          statScoreBonus += weight / 4;
+          statScoreBonus += std::clamp(weight / 4, -3000, 3000);
 
       r -= statScoreBonus / (11124 + 4740 * (depth > 5 && depth < 22));
 
@@ -1231,7 +1229,7 @@ moves_loop: // When in check, search starts here
                         : value >= beta  ?  stat_bonus(newDepth)
                                          :  0;
 
-              update_continuation_histories(ss, movedPiece, to_sq(move), bonus);                 
+              update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
           }
       }
 
