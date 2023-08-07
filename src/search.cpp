@@ -1181,7 +1181,10 @@ moves_loop: // When in check, search starts here
 
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
       int statScoreBonus = ss->statScore;
-      
+
+      if (statScoreBonus > 0)
+          statScoreBonus += weight / 4;
+
       r -= statScoreBonus / (11124 + 4740 * (depth > 5 && depth < 22));
 
       // Step 17. Late moves reduction / extension (LMR, ~117 Elo)
@@ -1201,17 +1204,12 @@ moves_loop: // When in check, search starts here
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
-          int statScoreWasRight = value > alpha && statScoreBonus < 0  ? 1
-                                : value < alpha && statScoreBonus < 0  ? -1
-                                : 0;
+          int weightAdjust = value > alpha && statScoreBonus > 0  ? 150
+                           : value < alpha && statScoreBonus > 0  ? -25
+                           : weight < 0 ? 1
+                           : -1;
 
-          weight += statScoreWasRight;
-
-          correct += statScoreWasRight == 1;
-          wrong += statScoreWasRight == -1;
-              
-          if (rootNode && depth > 15)
-              sync_cout << weight << "::" << correct << "::" << wrong << sync_endl;
+          weight += weightAdjust;
 
           // Do a full-depth search when reduced LMR search fails high
           if (value > alpha && d < newDepth)
