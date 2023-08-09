@@ -1202,7 +1202,7 @@ moves_loop: // When in check, search starts here
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
-          int weightAdjust = value > alpha && statScoreBonus > 0  ? 143
+          int weightAdjust = value > alpha && statScoreBonus > 0  ? 138
                            : value < alpha && statScoreBonus > 0  ? -25
                            : weight < 0 ? 1
                            : -1;
