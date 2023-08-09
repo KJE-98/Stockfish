@@ -1181,7 +1181,7 @@ moves_loop: // When in check, search starts here
       int statScoreBonus = ss->statScore;
 
       if (statScoreBonus > 0)
-          statScoreBonus += std::clamp(weight / 4, -3000, 3000);
+          statScoreBonus += std::clamp(weight / 3, -3300, 3300);
 
       r -= statScoreBonus / (11124 + 4740 * (depth > 5 && depth < 22));
 
@@ -1202,7 +1202,7 @@ moves_loop: // When in check, search starts here
 
           value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
-          int weightAdjust = value > alpha && statScoreBonus > 0  ? 138
+          int weightAdjust = value > alpha && statScoreBonus > 0  ? 143
                            : value < alpha && statScoreBonus > 0  ? -25
                            : weight < 0 ? 1
                            : -1;
