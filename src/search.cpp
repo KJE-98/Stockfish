@@ -40,8 +40,7 @@ namespace Stockfish {
 
 namespace Search {
 
-  int64_t statScoreTotal = 0;
-  int64_t statScoreBase = 0;
+  int statScoreAverage = -8000;
 
   LimitsType Limits;
 }
@@ -1177,17 +1176,9 @@ moves_loop: // When in check, search starts here
                      + (*contHist[0])[movedPiece][to_sq(move)]
                      + (*contHist[1])[movedPiece][to_sq(move)]
                      + (*contHist[3])[movedPiece][to_sq(move)]
-                     - 4001
-                     + (statScoreTotal / (statScoreBase+1) < -12000 ? 2000 :
-                        statScoreTotal / (statScoreBase+1) > -5000 ? -2000 : 0);
+                     - ( statScoreAverage + 12000);
 
-      statScoreTotal += ss->statScore;
-      statScoreBase += 1;
-
-      if ( statScoreBase > 1000000 ) {
-          statScoreTotal = statScoreTotal / 3 * 2;
-          statScoreBase = statScoreBase / 3 * 2;
-      }
+      statScoreAverage += (ss->statScore - statScoreAverage)/1024;
 
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
       r -= ss->statScore / (11124 + 4740 * (depth > 5 && depth < 22));
