@@ -1047,7 +1047,7 @@ moves_loop: // When in check, search starts here
               Value singularBeta = ttValue - (82 + 65 * (ss->ttPv && !PvNode)) * depth / 64;
 
               // Try to take advantage of multi-cut pruning
-              if ( beta >= singularBeta && ( 2 * singularBeta + ttValue ) / 3 > beta )
+              if ( beta >= singularBeta && ( 4 * singularBeta + ttValue ) / 5 > beta )
                   singularBeta = beta;
 
               Depth singularDepth = (depth - 1) / 2;
