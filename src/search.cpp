@@ -1046,10 +1046,6 @@ moves_loop: // When in check, search starts here
           {
               Value singularBeta = ttValue - (82 + 65 * (ss->ttPv && !PvNode)) * depth / 64;
 
-              // Try to take advantage of multi-cut pruning
-              if ( beta >= singularBeta && ( 3 * singularBeta + ttValue ) / 4 > beta )
-                  singularBeta = beta;
-
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
@@ -1706,6 +1702,11 @@ moves_loop: // When in check, search starts here
 
         // Increase stats for the best move in case it was a quiet move
         update_quiet_stats(pos, ss, bestMove, bestMoveBonus);
+
+        Move prevMove = (ss-1)->currentMove;
+        Square prevToSq = to_sq(prevMove);
+        Piece prevPiece = pos.piece_on(prevToSq);
+        (*ss->continuationHistory)[prevToSq][prevPiece] << (-bestMoveBonus / 2);
 
         // Decrease stats for all non-best quiet moves
         for (int i = 0; i < quietCount; ++i)
