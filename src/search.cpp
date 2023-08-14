@@ -1045,8 +1045,11 @@ moves_loop: // When in check, search starts here
               &&  tte->depth() >= depth - 3)
           {
               Value singularBeta = ttValue - (82 + 65 * (ss->ttPv && !PvNode)) * depth / 64;
-              if (!ss->inCheck)
-                  singularBeta = (4 * ttValue - ss->staticEval) / 5 - (82 + 65 * (ss->ttPv && !PvNode)) * depth / 64;
+
+              // Try to take advantage of multi-cut pruning
+              if ( beta >= singularBeta && ( 3 * singularBeta + ttValue ) / 4 > beta )
+                  singularBeta = beta;
+
               Depth singularDepth = (depth - 1) / 2;
 
               ss->excludedMove = move;
