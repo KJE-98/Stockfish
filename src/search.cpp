@@ -1706,7 +1706,7 @@ moves_loop: // When in check, search starts here
         Move prevMove = (ss-1)->currentMove;
         Square prevToSq = to_sq(prevMove);
         Piece prevPiece = pos.piece_on(prevToSq);
-        (*ss->continuationHistory)[prevToSq][prevPiece] << (-bestMoveBonus / 2);
+        (*ss->continuationHistory)[prevToSq][prevPiece] << -bestMoveBonus;
 
         // Decrease stats for all non-best quiet moves
         for (int i = 0; i < quietCount; ++i)
