@@ -1176,10 +1176,10 @@ moves_loop: // When in check, search starts here
                      + (*contHist[0])[movedPiece][to_sq(move)]
                      + (*contHist[1])[movedPiece][to_sq(move)]
                      + (*contHist[3])[movedPiece][to_sq(move)]
-                     - 2 * ( statScoreAverage + 10000);
+                     - ( statScoreAverage + 12000);
 
 
-      statScoreAverage += (ss->statScore - statScoreAverage)/1024;
+      statScoreAverage += (ss->statScore - statScoreAverage)/512;
 
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
       r -= ss->statScore / (11124 + 4740 * (depth > 5 && depth < 22));
