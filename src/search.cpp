@@ -60,7 +60,7 @@ using namespace Search;
 namespace {
 
   // Different node types, used as a template parameter
-  enum NodeType { NonPV, PV, Root };
+  enum NodeType { NonPV, PV, Root, Tri };
 
   // Futility margin
   Value futility_margin(Depth d, bool noTtCutNode, bool improving) {
@@ -512,8 +512,9 @@ namespace {
   template <NodeType nodeType>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
 
-    constexpr bool PvNode = nodeType != NonPV;
+    constexpr bool PvNode = nodeType != NonPV && nodeType != Tri;
     constexpr bool rootNode = nodeType == Root;
+    constexpr bool triNode = nodeType == Tri;
 
     // Check if we have an upcoming move that draws by repetition, or
     // if the opponent had an alternative move earlier to this position.
@@ -528,8 +529,14 @@ namespace {
     }
 
     // Dive into quiescence search when the depth reaches zero
-    if (depth <= 0)
-        return qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+    if (depth <= 0){
+        Value qvalue = qsearch<PvNode ? PV : NonPV>(pos, ss, alpha, beta);
+        Value initQval = qvalue;
+        if (triNode && qvalue < beta && qvalue > alpha)
+            qvalue = qsearch<NonPV>(pos, ss, beta - 1, beta);
+        return qvalue >= beta ? qvalue : initQval;
+    }
+        
 
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
@@ -544,7 +551,7 @@ namespace {
     Key posKey;
     Move ttMove, move, excludedMove, bestMove;
     Depth extension, newDepth;
-    Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
+    Value bestValue, value, ttValue, eval, maxValue, probCutBeta, initialAlpha;
     bool givesCheck, improving, priorCapture, singularQuietLMR;
     bool capture, moveCountPruning, ttCapture;
     Piece movedPiece;
@@ -558,6 +565,7 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    initialAlpha = alpha;
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -828,8 +836,13 @@ namespace {
         && !ttMove)
         depth -= 2 + 2 * (ss->ttHit && tte->depth() >= depth);
 
-    if (depth <= 0)
-        return qsearch<PV>(pos, ss, alpha, beta);
+    if (depth <= 0){
+        Value qvalue = qsearch<PV>(pos, ss, alpha, beta);
+        Value initQval = qvalue;
+        if (triNode && qvalue < beta && qvalue > alpha)
+            qvalue = qsearch<PV>(pos, ss, beta - 1, beta);
+        return qvalue >= beta ? qvalue : initQval;
+    }
 
     if (    cutNode
         &&  depth >= 8
@@ -1047,9 +1060,15 @@ moves_loop: // When in check, search starts here
               Value singularBeta = ttValue - (82 + 65 * (ss->ttPv && !PvNode)) * depth / 64;
               Depth singularDepth = (depth - 1) / 2;
 
-              ss->excludedMove = move;
-              value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
-              ss->excludedMove = MOVE_NONE;
+              if ( singularBeta < beta ) {
+                ss->excludedMove = move;
+                value = search<Tri>(pos, ss, singularBeta - 1, beta, singularDepth, cutNode);
+                ss->excludedMove = MOVE_NONE;
+              } else {
+                ss->excludedMove = move;
+                value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+                ss->excludedMove = MOVE_NONE;
+              }
 
               if (value < singularBeta)
               {
@@ -1071,7 +1090,7 @@ moves_loop: // When in check, search starts here
               // search without the ttMove. So we assume this expected Cut-node is not singular,
               // that multiple moves fail high, and we can prune the whole subtree by returning
               // a softbound.
-              else if (singularBeta >= beta)
+              else if (value >= beta && value >= singularBeta)
                   return singularBeta;
 
               // If the eval of ttMove is greater than beta, we reduce it (negative extension) (~7 Elo)
@@ -1175,7 +1194,8 @@ moves_loop: // When in check, search starts here
           // beyond the first move depth. This may lead to hidden double extensions.
           Depth d = std::clamp(newDepth - r, 1, newDepth + 1);
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, d, true);
+          const NodeType isTri = triNode ? Tri : NonPV;
+          value = -search<isTri>(pos, ss+1, -(alpha+1), -alpha, d, true);
 
           // Do a full-depth search when reduced LMR search fails high
           if (value > alpha && d < newDepth)
@@ -1191,7 +1211,7 @@ moves_loop: // When in check, search starts here
               newDepth += doDeeperSearch - doShallowerSearch + doEvenDeeperSearch;
 
               if (newDepth > d)
-                  value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
+                  value = -search<isTri>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
 
               int bonus = value <= alpha ? -stat_bonus(newDepth)
                         : value >= beta  ?  stat_bonus(newDepth)
@@ -1208,7 +1228,8 @@ moves_loop: // When in check, search starts here
           if (!ttMove && cutNode)
               r += 2;
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth - (r > 3), !cutNode);
+          const NodeType isTri = triNode ? Tri : NonPV;
+          value = -search<isTri>(pos, ss+1, -(alpha+1), -alpha, newDepth - (r > 3), !cutNode);
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
@@ -1307,7 +1328,7 @@ moves_loop: // When in check, search starts here
                       depth -= 2;
 
                   assert(depth > 0);
-                  alpha = value; // Update alpha! Always alpha < beta
+                  alpha = triNode ? beta - 1 : value; // Update alpha! Always alpha < beta
               }
           }
       }
@@ -1366,11 +1387,19 @@ moves_loop: // When in check, search starts here
         ss->ttPv = ss->ttPv || ((ss-1)->ttPv && depth > 3);
 
     // Write gathered information in transposition table
-    if (!excludedMove && !(rootNode && thisThread->pvIdx))
-        tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
-                  bestValue >= beta ? BOUND_LOWER :
-                  PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
-                  depth, bestMove, ss->staticEval);
+    if (!excludedMove && !(rootNode && thisThread->pvIdx)){
+        if (triNode)
+            tte->save(posKey,
+                        value_to_tt( bestValue < beta && bestMove ? initialAlpha : bestValue, ss->ply ),
+                        ss->ttPv,
+                        bestMove ? BOUND_LOWER : BOUND_UPPER,
+                        depth, bestMove, ss->staticEval);
+        else
+            tte->save(posKey, value_to_tt(bestValue, ss->ply), ss->ttPv,
+                    bestValue >= beta ? BOUND_LOWER :
+                    PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
+                    depth, bestMove, ss->staticEval);
+    }
 
     assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
 
