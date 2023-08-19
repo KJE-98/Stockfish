@@ -598,6 +598,7 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = is_ok((ss-1)->currentMove) ? to_sq((ss-1)->currentMove) : SQ_NONE;
     ss->statScore        = 0;
+    ss->cutNode          = cutNode;
 
     // Step 4. Transposition table lookup.
     excludedMove = ss->excludedMove;
@@ -1131,6 +1132,9 @@ moves_loop: // When in check, search starts here
       // Increase reduction for cut nodes (~3 Elo)
       if (cutNode)
           r += 1 + (moveCount > 4) + (moveCount > 10);
+
+      if ((ss-2)->cutNode)
+          r++;
 
       // Increase reduction if ttMove is a capture (~3 Elo)
       if (ttCapture)

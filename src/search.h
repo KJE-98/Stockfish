@@ -51,7 +51,7 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
-  bool inLMR;
+  bool cutNode;
 };
 
 
