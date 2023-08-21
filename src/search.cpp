@@ -598,6 +598,12 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = is_ok((ss-1)->currentMove) ? to_sq((ss-1)->currentMove) : SQ_NONE;
     ss->statScore        = 0;
+    ss->responses[0]     = MOVE_NULL;
+    ss->responses[1]     = MOVE_NULL;
+    ss->responses[2]     = MOVE_NULL;
+    ss->responses[3]     = MOVE_NULL;
+    ss->responses[4]     = MOVE_NULL;
+    ss->responses[5]     = MOVE_NULL;
 
     // Step 4. Transposition table lookup.
     excludedMove = ss->excludedMove;
@@ -1191,7 +1197,7 @@ moves_loop: // When in check, search starts here
               newDepth += doDeeperSearch - doShallowerSearch + doEvenDeeperSearch;
 
               if (newDepth > d)
-                  value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, PvNode);
+                  value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth, !cutNode);
 
               int bonus = value <= alpha ? -stat_bonus(newDepth)
                         : value >= beta  ?  stat_bonus(newDepth)
@@ -1208,7 +1214,7 @@ moves_loop: // When in check, search starts here
           if (!ttMove && cutNode)
               r += 2;
 
-          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth - (r > 3), PvNode);
+          value = -search<NonPV>(pos, ss+1, -(alpha+1), -alpha, newDepth - (r > 3), !cutNode);
       }
 
       // For PV nodes only, do a full PV search on the first move or after a fail
@@ -1321,8 +1327,32 @@ moves_loop: // When in check, search starts here
 
           else if (!capture && quietCount < 64)
               quietsSearched[quietCount++] = move;
+
+          if( is_ok((ss-1)->responses[0]) && is_ok((ss-1)->currentMove) )
+              thisThread->MovepairHistory[to_sq((ss-1)->responses[0])][to_sq((ss-1)->responses[1])][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+
+          if( is_ok((ss-1)->responses[2]) && is_ok((ss-1)->currentMove) )
+              thisThread->MovepairHistory[to_sq((ss-1)->responses[2])][to_sq((ss-1)->responses[3])][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+
+          if( is_ok((ss-1)->responses[4]) && is_ok((ss-1)->currentMove) )
+              thisThread->MovepairHistory[to_sq((ss-1)->responses[4])][to_sq((ss-1)->responses[5])][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
       }
     }
+
+    if (bestMove)
+    {
+          if( is_ok((ss-1)->responses[0]) && is_ok((ss-1)->currentMove) )
+              thisThread->MovepairHistory[to_sq((ss-1)->responses[0])][to_sq((ss-1)->responses[1])][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+
+          if( is_ok((ss-1)->responses[2]) && is_ok((ss-1)->currentMove) )
+              thisThread->MovepairHistory[to_sq((ss-1)->responses[2])][to_sq((ss-1)->responses[3])][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+
+          if( is_ok((ss-1)->responses[4]) && is_ok((ss-1)->currentMove) )
+              thisThread->MovepairHistory[to_sq((ss-1)->responses[4])][to_sq((ss-1)->responses[5])][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+    }
+
+    if (is_ok(ss->responses[2]) && is_ok(ss->responses[4]))
+          sync_cout << thisThread->MovepairHistory[to_sq(ss->responses[2])][to_sq(ss->responses[3])][to_sq(ss->responses[4])][to_sq(ss->responses[5])] << sync_endl;
 
     // The following condition would detect a stop only after move loop has been
     // completed. But in this case, bestValue is valid because we have fully
@@ -1693,6 +1723,16 @@ moves_loop: // When in check, search starts here
     PieceType captured;
 
     int quietMoveBonus = stat_bonus(depth + 1);
+
+    int response = (ss-1)->responses[0] == MOVE_NULL ? 0 :
+                   (ss-1)->responses[2] == MOVE_NULL ? 2 :
+                   (ss-1)->responses[4] == MOVE_NULL ? 4 : -1;
+
+    if (response != -1 && is_ok((ss-1)->currentMove))
+    {
+        (ss-1)->responses[response] = (ss-1)->currentMove;
+        (ss-1)->responses[response+1] = bestMove;
+    }
 
     if (!pos.capture_stage(bestMove))
     {
