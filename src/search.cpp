@@ -1157,17 +1157,19 @@ moves_loop: // When in check, search starts here
       else if (move == ttMove)
           r--;
 
-      if (is_ok((ss-1)->currentMove))
+      if (is_ok((ss-1)->currentMove) && !rootNode)
       {
           int movePairReduction = 0;
           if ((ss-1)->responses[0] != SQ_NONE)
-              movePairReduction += thisThread->MovepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)];
+              movePairReduction += thisThread->movepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)];
 
           if ((ss-1)->responses[2] != SQ_NONE)
-              movePairReduction += thisThread->MovepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)];
+              movePairReduction += thisThread->movepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)];
 
           if ((ss-1)->responses[4] != SQ_NONE)
-              movePairReduction += thisThread->MovepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)];
+              movePairReduction += thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)];
+
+          r -= std::min( 3, movePairReduction / 200);
       }
 
       ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
@@ -1341,28 +1343,27 @@ moves_loop: // When in check, search starts here
           else if (!capture && quietCount < 64)
               quietsSearched[quietCount++] = move;
 
-          if( is_ok((ss-1)->currentMove) )
+          if( is_ok((ss-1)->currentMove) && !rootNode)
           {
-            thisThread->MovepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
-            thisThread->MovepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
-            thisThread->MovepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+            thisThread->movepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+            thisThread->movepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+            thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
           }
-              
               
       }
     }
 
-    if (bestMove && is_ok((ss-1)->currentMove))
+    if (bestMove && is_ok((ss-1)->currentMove) && !rootNode)
     {
-        thisThread->MovepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+        thisThread->movepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
 
-        thisThread->MovepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+        thisThread->movepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
 
-        thisThread->MovepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+        thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
     }
 
     //if (is_ok(ss->responses[2]) && is_ok(ss->responses[4]))
-          //sync_cout << thisThread->MovepairHistory[to_sq(ss->responses[2])][to_sq(ss->responses[3])][to_sq(ss->responses[4])][to_sq(ss->responses[5])] << sync_endl;
+          //sync_cout << thisThread->movepairHistory[to_sq(ss->responses[2])][to_sq(ss->responses[3])][to_sq(ss->responses[4])][to_sq(ss->responses[5])] << sync_endl;
 
     // The following condition would detect a stop only after move loop has been
     // completed. But in this case, bestValue is valid because we have fully
