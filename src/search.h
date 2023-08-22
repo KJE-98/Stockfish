@@ -51,7 +51,7 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
-  Move responses[6];
+  Square responses[6];
 };
 
 

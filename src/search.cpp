@@ -598,12 +598,12 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = is_ok((ss-1)->currentMove) ? to_sq((ss-1)->currentMove) : SQ_NONE;
     ss->statScore        = 0;
-    ss->responses[0]     = MOVE_NULL;
-    ss->responses[1]     = MOVE_NULL;
-    ss->responses[2]     = MOVE_NULL;
-    ss->responses[3]     = MOVE_NULL;
-    ss->responses[4]     = MOVE_NULL;
-    ss->responses[5]     = MOVE_NULL;
+    ss->responses[0]     = SQ_NONE;
+    ss->responses[1]     = SQ_NONE;
+    ss->responses[2]     = SQ_NONE;
+    ss->responses[3]     = SQ_NONE;
+    ss->responses[4]     = SQ_NONE;
+    ss->responses[5]     = SQ_NONE;
 
     // Step 4. Transposition table lookup.
     excludedMove = ss->excludedMove;
@@ -1160,16 +1160,14 @@ moves_loop: // When in check, search starts here
       if (is_ok((ss-1)->currentMove))
       {
           int movePairReduction = 0;
-          if (is_ok((ss-1)->responses[0]))
-              movePairReduction += thisThread->MovepairHistory[to_sq((ss-1)->responses[0])][to_sq((ss-1)->responses[1])][to_sq((ss-1)->currentMove)][to_sq(move)];
+          if ((ss-1)->responses[0] != SQ_NONE)
+              movePairReduction += thisThread->MovepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)];
 
-          if (is_ok((ss-1)->responses[2]))
-              movePairReduction += thisThread->MovepairHistory[to_sq((ss-1)->responses[2])][to_sq((ss-1)->responses[3])][to_sq((ss-1)->currentMove)][to_sq(move)];
+          if ((ss-1)->responses[2] != SQ_NONE)
+              movePairReduction += thisThread->MovepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)];
 
-          if (is_ok((ss-1)->responses[4]))
-              movePairReduction += thisThread->MovepairHistory[to_sq((ss-1)->responses[4])][to_sq((ss-1)->responses[5])][to_sq((ss-1)->currentMove)][to_sq(move)];
-
-          r -= std::min( 3, movePairReduction / 100);
+          if ((ss-1)->responses[4] != SQ_NONE)
+              movePairReduction += thisThread->MovepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)];
       }
 
       ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
@@ -1343,27 +1341,24 @@ moves_loop: // When in check, search starts here
           else if (!capture && quietCount < 64)
               quietsSearched[quietCount++] = move;
 
-          if( is_ok((ss-1)->responses[0]) && is_ok((ss-1)->currentMove) )
-              thisThread->MovepairHistory[to_sq((ss-1)->responses[0])][to_sq((ss-1)->responses[1])][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
-
-          if( is_ok((ss-1)->responses[2]) && is_ok((ss-1)->currentMove) )
-              thisThread->MovepairHistory[to_sq((ss-1)->responses[2])][to_sq((ss-1)->responses[3])][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
-
-          if( is_ok((ss-1)->responses[4]) && is_ok((ss-1)->currentMove) )
-              thisThread->MovepairHistory[to_sq((ss-1)->responses[4])][to_sq((ss-1)->responses[5])][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+          if( is_ok((ss-1)->currentMove) )
+          {
+            thisThread->MovepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+            thisThread->MovepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+            thisThread->MovepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)] << -1;
+          }
+              
+              
       }
     }
 
-    if (bestMove)
+    if (bestMove && is_ok((ss-1)->currentMove))
     {
-          if( is_ok((ss-1)->responses[0]) && is_ok((ss-1)->currentMove) )
-              thisThread->MovepairHistory[to_sq((ss-1)->responses[0])][to_sq((ss-1)->responses[1])][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+        thisThread->MovepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
 
-          if( is_ok((ss-1)->responses[2]) && is_ok((ss-1)->currentMove) )
-              thisThread->MovepairHistory[to_sq((ss-1)->responses[2])][to_sq((ss-1)->responses[3])][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+        thisThread->MovepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
 
-          if( is_ok((ss-1)->responses[4]) && is_ok((ss-1)->currentMove) )
-              thisThread->MovepairHistory[to_sq((ss-1)->responses[4])][to_sq((ss-1)->responses[5])][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
+        thisThread->MovepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(bestMove)] << 5;
     }
 
     //if (is_ok(ss->responses[2]) && is_ok(ss->responses[4]))
@@ -1739,14 +1734,14 @@ moves_loop: // When in check, search starts here
 
     int quietMoveBonus = stat_bonus(depth + 1);
 
-    int response = (ss-1)->responses[0] == MOVE_NULL ? 0 :
-                   (ss-1)->responses[2] == MOVE_NULL ? 2 :
-                   (ss-1)->responses[4] == MOVE_NULL ? 4 : -1;
+    int response = (ss-1)->responses[0] == SQ_NONE ? 0 :
+                   (ss-1)->responses[2] == SQ_NONE ? 2 :
+                   (ss-1)->responses[4] == SQ_NONE ? 4 : -1;
 
     if (response != -1 && is_ok((ss-1)->currentMove))
     {
-        (ss-1)->responses[response] = (ss-1)->currentMove;
-        (ss-1)->responses[response+1] = bestMove;
+        (ss-1)->responses[response] = to_sq((ss-1)->currentMove);
+        (ss-1)->responses[response+1] = to_sq(bestMove);
     }
 
     if (!pos.capture_stage(bestMove))
