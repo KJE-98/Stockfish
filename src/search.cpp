@@ -1170,6 +1170,7 @@ moves_loop: // When in check, search starts here
               movePairReduction += thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)];
 
           movePairReduction = std::clamp(movePairReduction / 50, -2, 2);
+
           r -= movePairReduction;
       }
 
@@ -1346,9 +1347,9 @@ moves_loop: // When in check, search starts here
 
           if( is_ok((ss-1)->currentMove) && !rootNode)
           {
-            thisThread->movepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)] << -2;
-            thisThread->movepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)] << -2;
-            thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)] << -2;
+            thisThread->movepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)] << -4;
+            thisThread->movepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)] << -4;
+            thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)] << -4;
           }
               
       }
