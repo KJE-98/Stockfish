@@ -1174,7 +1174,7 @@ moves_loop: // When in check, search starts here
           if ((ss-1)->responses[4] != SQ_NONE)
               movePairReduction += thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)];
 
-          r -= movePairReduction > 70;
+          r += movePairReduction < -30;
       }
 
       ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
