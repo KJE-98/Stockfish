@@ -61,9 +61,11 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Move cm,
-                                                             const Move* killers)
-           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
+                                                             const Move* killers,
+                                                             const MovepairHistory* ph,
+                                                             const Square* rp)
+           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), pairHistory(ph),
+             responses{rp[0],rp[1],rp[2],rp[3],rp[4],rp[5]}, ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
 {
   assert(d > 0);
 
@@ -76,7 +78,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Square rs)
-           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch), ttMove(ttm), recaptureSquare(rs), depth(d)
+           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
+             responses{SQUARE_NULL,SQUARE_NULL,SQUARE_NULL,SQUARE_NULL,SQUARE_NULL,SQUARE_NULL}, ttMove(ttm), recaptureSquare(rs), depth(d)
 {
   assert(d <= 0);
 
@@ -88,7 +91,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
 /// MovePicker constructor for ProbCut: we generate captures with SEE greater
 /// than or equal to the given threshold.
 MovePicker::MovePicker(const Position& p, Move ttm, Value th, const CapturePieceToHistory* cph)
-           : pos(p), captureHistory(cph), ttMove(ttm), threshold(th)
+           : pos(p), captureHistory(cph), responses{SQUARE_NULL,SQUARE_NULL,SQUARE_NULL,SQUARE_NULL,SQUARE_NULL,SQUARE_NULL},
+             ttMove(ttm), threshold(th)
 {
   assert(!pos.checkers());
 
@@ -133,11 +137,22 @@ void MovePicker::score() {
           Square    to   = to_sq(m);
 
           // histories
+          int pairHistoryValue = 0;
+
           m.value =  2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
           m.value += 2 * (*continuationHistory[0])[pc][to];
           m.value +=     (*continuationHistory[1])[pc][to];
           m.value +=     (*continuationHistory[3])[pc][to];
           m.value +=     (*continuationHistory[5])[pc][to];
+
+          if (responses[0] != SQ_NONE && responses[0] != SQUARE_NULL)
+              pairHistoryValue += (*pairHistory)[responses[0]][responses[1]][from][to];
+          if (responses[2] != SQ_NONE && responses[2] != SQUARE_NULL)
+              pairHistoryValue += (*pairHistory)[responses[2]][responses[3]][from][to];
+          if (responses[4] != SQ_NONE && responses[4] != SQUARE_NULL)
+              pairHistoryValue += (*pairHistory)[responses[4]][responses[5]][from][to];
+          
+          m.value += std::clamp(pairHistoryValue * 80 + 10, -5000, 5000);
 
           // bonus for checks
           m.value += bool(pos.check_squares(pt) & to) * 16384;

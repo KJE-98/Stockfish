@@ -99,7 +99,7 @@ using CapturePieceToHistory = Stats<int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_T
 /// PieceToHistory is like ButterflyHistory but is addressed by a move's [piece][to]
 using PieceToHistory = Stats<int16_t, 29952, PIECE_NB, SQUARE_NB>;
 
-using MovepairHistory = Stats<int16_t, 10000, SQUARE_NB + 1, SQUARE_NB + 1, SQUARE_NB + 1, SQUARE_NB + 1>;
+using MovepairHistory = Stats<int16_t, 10000, SQUARE_NB + 2, SQUARE_NB + 2, SQUARE_NB + 2, SQUARE_NB + 2>;
 
 /// ContinuationHistory is the combined history of a given pair of moves, usually
 /// the current one given a previous one. The nested history table is based on
@@ -125,7 +125,9 @@ public:
                                            const CapturePieceToHistory*,
                                            const PieceToHistory**,
                                            Move,
-                                           const Move*);
+                                           const Move*,
+                                           const MovepairHistory*,
+                                           const Square*);
   MovePicker(const Position&, Move, Depth, const ButterflyHistory*,
                                            const CapturePieceToHistory*,
                                            const PieceToHistory**,
@@ -143,6 +145,8 @@ private:
   const ButterflyHistory* mainHistory;
   const CapturePieceToHistory* captureHistory;
   const PieceToHistory** continuationHistory;
+  const MovepairHistory* pairHistory;
+  const Square responses[6];
   Move ttMove;
   ExtMove refutations[3], *cur, *endMoves, *endBadCaptures;
   int stage;

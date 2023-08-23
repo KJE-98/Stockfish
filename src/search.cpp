@@ -919,7 +919,9 @@ moves_loop: // When in check, search starts here
                                       &captureHistory,
                                       contHist,
                                       countermove,
-                                      ss->killers);
+                                      ss->killers,
+                                      &thisThread->movepairHistory,
+                                      (ss-1)->responses);
 
     value = bestValue;
     moveCountPruning = singularQuietLMR = false;
@@ -1161,21 +1163,6 @@ moves_loop: // When in check, search starts here
 
       else if (move == ttMove)
           r--;
-
-      if (is_ok((ss-1)->currentMove) && !rootNode)
-      {
-          int movePairReduction = 0;
-          if ((ss-1)->responses[0] != SQ_NONE)
-              movePairReduction += thisThread->movepairHistory[(ss-1)->responses[0]][(ss-1)->responses[1]][to_sq((ss-1)->currentMove)][to_sq(move)];
-
-          if ((ss-1)->responses[2] != SQ_NONE)
-              movePairReduction += thisThread->movepairHistory[(ss-1)->responses[2]][(ss-1)->responses[3]][to_sq((ss-1)->currentMove)][to_sq(move)];
-
-          if ((ss-1)->responses[4] != SQ_NONE)
-              movePairReduction += thisThread->movepairHistory[(ss-1)->responses[4]][(ss-1)->responses[5]][to_sq((ss-1)->currentMove)][to_sq(move)];
-
-          r += movePairReduction < -30;
-      }
 
       ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
                      + (*contHist[0])[movedPiece][to_sq(move)]

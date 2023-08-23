@@ -223,7 +223,8 @@ enum Square : int {
   SQ_NONE,
 
   SQUARE_ZERO = 0,
-  SQUARE_NB   = 64
+  SQUARE_NB   = 64,
+  SQUARE_NULL = 65,
 };
 
 enum Direction : int {
