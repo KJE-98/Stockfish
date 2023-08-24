@@ -137,7 +137,6 @@ void MovePicker::score() {
           Square    to   = to_sq(m);
 
           // histories
-          int pairHistoryValue = 0;
 
           m.value =  2 * (*mainHistory)[pos.side_to_move()][from_to(m)];
           m.value += 2 * (*continuationHistory[0])[pc][to];
@@ -145,14 +144,21 @@ void MovePicker::score() {
           m.value +=     (*continuationHistory[3])[pc][to];
           m.value +=     (*continuationHistory[5])[pc][to];
 
-          if (responses[0] != SQ_NONE && responses[0] != SQUARE_NULL)
-              pairHistoryValue += (*pairHistory)[responses[0]][responses[1]][from][to];
-          if (responses[2] != SQ_NONE && responses[2] != SQUARE_NULL)
-              pairHistoryValue += (*pairHistory)[responses[2]][responses[3]][from][to];
-          if (responses[4] != SQ_NONE && responses[4] != SQUARE_NULL)
-              pairHistoryValue += (*pairHistory)[responses[4]][responses[5]][from][to];
-          
-          m.value += std::clamp(pairHistoryValue * 80 + 10, -5000, 5000);
+          if (responses[0] != SQ_NONE && responses[0] != SQUARE_NULL){
+              int pairHistoryValue = (*pairHistory)[responses[0]][responses[1]][from][to];
+              if (pairHistoryValue != 0)
+                  m.value += std::clamp(pairHistoryValue * 50 + 100, -2000, 2000);
+          }
+          if (responses[2] != SQ_NONE && responses[2] != SQUARE_NULL){
+              int pairHistoryValue = (*pairHistory)[responses[2]][responses[3]][from][to];
+              if (pairHistoryValue != 0)
+                  m.value += std::clamp(pairHistoryValue * 50 + 100, -2000, 2000);
+          }
+          if (responses[4] != SQ_NONE && responses[4] != SQUARE_NULL){
+              int pairHistoryValue = (*pairHistory)[responses[4]][responses[5]][from][to];
+              if (pairHistoryValue != 0)
+                  m.value += std::clamp(pairHistoryValue * 50 + 100, -2000, 2000);
+          }
 
           // bonus for checks
           m.value += bool(pos.check_squares(pt) & to) * 16384;
