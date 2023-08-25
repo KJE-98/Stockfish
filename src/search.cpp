@@ -1158,17 +1158,14 @@ moves_loop: // When in check, search starts here
       else if (move == ttMove)
           r--;
 
-      if (statScoreAverage < -10500)
-          r--;
-
       ss->statScore =  2 * thisThread->mainHistory[us][from_to(move)]
                      + (*contHist[0])[movedPiece][to_sq(move)]
                      + (*contHist[1])[movedPiece][to_sq(move)]
                      + (*contHist[3])[movedPiece][to_sq(move)]
-                     - ( statScoreAverage + 12000);
+                     - ( statScoreAverage + 14000);
 
 
-      statScoreAverage += (ss->statScore - statScoreAverage)/1024;
+      statScoreAverage += (ss->statScore - statScoreAverage)/1536;
 
       // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
       r -= ss->statScore / (11124 + 4740 * (depth > 5 && depth < 22));
