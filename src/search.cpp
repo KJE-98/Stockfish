@@ -598,6 +598,7 @@ namespace {
     ss->doubleExtensions = (ss-1)->doubleExtensions;
     Square prevSq        = is_ok((ss-1)->currentMove) ? to_sq((ss-1)->currentMove) : SQ_NONE;
     ss->statScore        = 0;
+    ss->movedPiece       = NO_PIECE;
 
     // Step 4. Transposition table lookup.
     excludedMove = ss->excludedMove;
@@ -1109,6 +1110,7 @@ moves_loop: // When in check, search starts here
 
       // Update the current move (this must be done after singular extension search)
       ss->currentMove = move;
+      ss->movedPiece = movedPiece;
       ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
                                                                 [capture]
                                                                 [movedPiece]
@@ -1697,6 +1699,12 @@ moves_loop: // When in check, search starts here
     PieceType captured;
 
     int quietMoveBonus = stat_bonus(depth + 1);
+
+    
+    if (   is_ok((ss-1)->currentMove) && (ss-1)->movedPiece != NO_PIECE
+        && is_ok((ss-3)->currentMove) && (ss-3)->movedPiece != NO_PIECE){
+            (*(ss-1)->continuationHistory)[(ss-3)->movedPiece][to_sq((ss-3)->currentMove)] << -stat_bonus(depth);
+    }
 
     if (!pos.capture_stage(bestMove))
     {
