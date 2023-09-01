@@ -923,6 +923,8 @@ moves_loop: // When in check, search starts here
         pairMove = thisThread->pairHistory[(ss-1)->fmPiece][(ss-1)->firstMove]
                                           [type_of((ss-1)->rfPiece)][(ss-1)->refutation]
                                           [type_of((ss-1)->movedPiece)][(ss-1)->toSquare];
+
+        pairMove = MOVE_NONE;
     }
 
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
