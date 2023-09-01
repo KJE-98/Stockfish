@@ -921,8 +921,8 @@ moves_loop: // When in check, search starts here
     Move pairMove = MOVE_NONE;
     if ((ss-1)->fmPiece != NO_PIECE){
         pairMove = thisThread->pairHistory[(ss-1)->fmPiece][(ss-1)->firstMove]
-                                          [(ss-1)->rfPiece][(ss-1)->refutation]
-                                          [(ss-1)->movedPiece][(ss-1)->toSquare];
+                                          [type_of((ss-1)->rfPiece)][(ss-1)->refutation]
+                                          [type_of((ss-1)->movedPiece)][(ss-1)->toSquare];
     }
 
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
@@ -1373,8 +1373,8 @@ moves_loop: // When in check, search starts here
     if ( bestMove && (ss-1)->moveCount > 1 )
     {
         thisThread->pairHistory[(ss-1)->fmPiece][(ss-1)->firstMove]
-                               [(ss-1)->rfPiece][(ss-1)->refutation]
-                               [(ss-1)->movedPiece][(ss-1)->toSquare] = bestMove;
+                               [type_of((ss-1)->rfPiece)][(ss-1)->refutation]
+                               [type_of((ss-1)->movedPiece)][(ss-1)->toSquare] = bestMove;
     }
 
     if (!moveCount)
