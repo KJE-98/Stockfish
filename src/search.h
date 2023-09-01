@@ -51,6 +51,12 @@ struct Stack {
   bool ttHit;
   int doubleExtensions;
   int cutoffCnt;
+  Square refutation;
+  Piece rfPiece;
+  Square firstMove;
+  Piece fmPiece;
+  Piece movedPiece;
+  Square toSquare; 
 };
 
 

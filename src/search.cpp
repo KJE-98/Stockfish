@@ -558,6 +558,15 @@ namespace {
     moveCount          = captureCount = quietCount = ss->moveCount = 0;
     bestValue          = -VALUE_INFINITE;
     maxValue           = VALUE_INFINITE;
+    
+    ss->refutation     = SQ_NONE;
+    ss->rfPiece        = NO_PIECE;
+    ss->firstMove      = SQ_NONE;
+    ss->fmPiece        = NO_PIECE;
+
+    ss->toSquare       = SQ_NONE;
+    ss->movedPiece     = NO_PIECE;
+
 
     // Check for the available remaining time
     if (thisThread == Threads.main())
@@ -909,9 +918,17 @@ moves_loop: // When in check, search starts here
 
     Move countermove = prevSq != SQ_NONE ? thisThread->counterMoves[pos.piece_on(prevSq)][prevSq] : MOVE_NONE;
 
+    Move pairMove = MOVE_NONE;
+    if ((ss-1)->fmPiece != NO_PIECE){
+        pairMove = thisThread->pairHistory[(ss-1)->fmPiece][(ss-1)->firstMove]
+                                          [(ss-1)->rfPiece][(ss-1)->refutation]
+                                          [(ss-1)->movedPiece][(ss-1)->toSquare];
+    }
+
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
                                       &captureHistory,
                                       contHist,
+                                      pairMove,
                                       countermove,
                                       ss->killers);
 
@@ -1109,6 +1126,8 @@ moves_loop: // When in check, search starts here
 
       // Update the current move (this must be done after singular extension search)
       ss->currentMove = move;
+      ss->movedPiece = movedPiece;
+      ss->toSquare = to_sq(move);
       ss->continuationHistory = &thisThread->continuationHistory[ss->inCheck]
                                                                 [capture]
                                                                 [movedPiece]
@@ -1343,11 +1362,25 @@ moves_loop: // When in check, search starts here
 
     assert(moveCount || !ss->inCheck || excludedMove || !MoveList<LEGAL>(pos).size());
 
+    if ( bestMove && (ss-1)->moveCount == 1 ){
+        (ss-1)->refutation = to_sq(bestMove);
+        (ss-1)->rfPiece    = pos.moved_piece(bestMove);
+
+        (ss-1)->firstMove  = (ss-1)->toSquare;
+        (ss-1)->fmPiece    = (ss-1)->movedPiece;
+    }
+
+    if ( bestMove && (ss-1)->moveCount > 1 )
+    {
+        thisThread->pairHistory[(ss-1)->fmPiece][(ss-1)->firstMove]
+                               [(ss-1)->rfPiece][(ss-1)->refutation]
+                               [(ss-1)->movedPiece][(ss-1)->toSquare] = bestMove;
+    }
+
     if (!moveCount)
         bestValue = excludedMove ? alpha :
                     ss->inCheck  ? mated_in(ss->ply)
                                  : VALUE_DRAW;
-
     // If there is a move that produces search value greater than alpha we update the stats of searched moves
     else if (bestMove)
         update_all_stats(pos, ss, bestMove, bestValue, beta, prevSq,

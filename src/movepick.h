@@ -93,6 +93,8 @@ using ButterflyHistory = Stats<int16_t, 7183, COLOR_NB, int(SQUARE_NB) * int(SQU
 /// move, see www.chessprogramming.org/Countermove_Heuristic
 using CounterMoveHistory = Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB>;
 
+using PairHistory = Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB, PIECE_NB, SQUARE_NB, PIECE_NB, SQUARE_NB>;
+
 /// CapturePieceToHistory is addressed by a move's [piece][to][captured piece type]
 using CapturePieceToHistory = Stats<int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
@@ -123,6 +125,7 @@ public:
                                            const CapturePieceToHistory*,
                                            const PieceToHistory**,
                                            Move,
+                                           Move,
                                            const Move*);
   MovePicker(const Position&, Move, Depth, const ButterflyHistory*,
                                            const CapturePieceToHistory*,
@@ -141,6 +144,7 @@ private:
   const ButterflyHistory* mainHistory;
   const CapturePieceToHistory* captureHistory;
   const PieceToHistory** continuationHistory;
+  const PairHistory* pairHistory;
   Move ttMove;
   ExtMove refutations[3], *cur, *endMoves, *endBadCaptures;
   int stage;

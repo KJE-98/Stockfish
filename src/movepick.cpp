@@ -60,10 +60,11 @@ namespace {
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHistory* mh,
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
+                                                             Move pm,
                                                              Move cm,
                                                              const Move* killers)
            : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {pm, 0}}, depth(d)
 {
   assert(d > 0);
 
@@ -263,7 +264,11 @@ top:
           && select<Next>([&](){return   *cur != refutations[0].move
                                       && *cur != refutations[1].move
                                       && *cur != refutations[2].move;}))
+      {
+          score<QUIETS>();
+          partial_insertion_sort(cur, endMoves, -3000 * depth);
           return *(cur - 1);
+      }
 
       // Prepare the pointers to loop over the bad captures
       cur = moves;
