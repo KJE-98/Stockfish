@@ -264,11 +264,7 @@ top:
           && select<Next>([&](){return   *cur != refutations[0].move
                                       && *cur != refutations[1].move
                                       && *cur != refutations[2].move;}))
-      {
-          score<QUIETS>();
-          partial_insertion_sort(cur, endMoves, -3000 * depth);
           return *(cur - 1);
-      }
 
       // Prepare the pointers to loop over the bad captures
       cur = moves;
