@@ -924,7 +924,8 @@ moves_loop: // When in check, search starts here
                                           [type_of((ss-1)->rfPiece)][(ss-1)->refutation]
                                           [type_of((ss-1)->movedPiece)][(ss-1)->toSquare];
 
-        pairMove = MOVE_NONE;
+        if (pairMove == ss->killers[0] || pairMove == ss->killers[1] || pairMove == countermove)
+            pairMove = MOVE_NONE;
     }
 
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory,
