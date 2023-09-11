@@ -66,9 +66,11 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const CapturePieceToHistory* cph,
                                                              const PieceToHistory** ch,
                                                              Move cm,
-                                                             const Move* killers)
-           : pos(p), mainHistory(mh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, depth(d)
+                                                             const Move* killers,
+                                                             const Move* futKill,
+                                                             const CounterMoveHistory* cmh)
+           : pos(p), mainHistory(mh), countermoveHistory(cmh), captureHistory(cph), continuationHistory(ch),
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, futureKillers{futKill[0], futKill[1]}, depth(d)
 {
   assert(d > 0);
 
@@ -165,6 +167,14 @@ void MovePicker::score() {
                        : pt != PAWN ?    bool(to & threatenedByPawn)  * 15000
                        :                                                0 )
                        :                                                0 ;
+
+          // malus for allowing a countermove which matches a killer
+          Move futureCounter = (*countermoveHistory)[pc][to];
+
+          if (   futureCounter != MOVE_NONE 
+              && (futureCounter == futureKillers[0] || futureCounter == futureKillers[0])){
+              m.value -= 3000;
+          }
       }
 
       else // Type == EVASIONS

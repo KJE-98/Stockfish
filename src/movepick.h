@@ -126,7 +126,9 @@ public:
                                            const CapturePieceToHistory*,
                                            const PieceToHistory**,
                                            Move,
-                                           const Move*);
+                                           const Move*,
+                                           const Move*,
+                                           const CounterMoveHistory*);
   MovePicker(const Position&, Move, Depth, const ButterflyHistory*,
                                            const CapturePieceToHistory*,
                                            const PieceToHistory**,
@@ -142,10 +144,12 @@ private:
 
   const Position& pos;
   const ButterflyHistory* mainHistory;
+  const CounterMoveHistory* countermoveHistory;
   const CapturePieceToHistory* captureHistory;
   const PieceToHistory** continuationHistory;
   Move ttMove;
   ExtMove refutations[3], *cur, *endMoves, *endBadCaptures;
+  Move futureKillers[2];
   int stage;
   Square recaptureSquare;
   Value threshold;
