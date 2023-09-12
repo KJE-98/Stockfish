@@ -173,7 +173,7 @@ void MovePicker::score() {
 
           if (   futureCounter != MOVE_NONE 
               && (futureCounter == futureKillers[0] || futureCounter == futureKillers[0])){
-              m.value -= 10000;
+              m.value -= 20000;
           }
       }
 
