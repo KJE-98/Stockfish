@@ -70,7 +70,7 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const ButterflyHist
                                                              const Move* futKill,
                                                              const CounterMoveHistory* cmh)
            : pos(p), mainHistory(mh), countermoveHistory(cmh), captureHistory(cph), continuationHistory(ch),
-             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, futureKillers{futKill[0], futKill[1]}, depth(d)
+             ttMove(ttm), refutations{{killers[0], 0}, {killers[1], 0}, {cm, 0}}, futureKillers(futKill), depth(d)
 {
   assert(d > 0);
 
@@ -173,7 +173,7 @@ void MovePicker::score() {
 
           if (   futureCounter != MOVE_NONE 
               && (futureCounter == futureKillers[0] || futureCounter == futureKillers[1])){
-              m.value -= 30000;
+              m.value -= 40000;
           }
       }
 
